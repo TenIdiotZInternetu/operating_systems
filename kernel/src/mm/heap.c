@@ -2,12 +2,46 @@
 // Copyright 2019 Charles University
 
 #include <mm/heap.h>
+#include <mm/self.h>
+
+#define FREE_MEM_NEXT_TRY 4096
+#define MIN_HEAP_BLOCK 16
+
+typedef struct {
+    uintptr_t end_address;
+    uintptr_t next_ptr;
+} heapHeader_t;
+
+static heapHeader_t heap_header;
 
 /** Heap initialization.
  *
  * Called once during system boot.
  */
 void heap_init(void) {
+    uint8_t test_write = 25;
+    uintptr_t start = kernel_get_image_end();
+    heap_header.next_ptr = start;
+    volatile uint8_t* current = (uint8_t*)start + FREE_MEM_NEXT_TRY;
+    *current = test_write;
+
+    while (*current == test_write) {
+        current += FREE_MEM_NEXT_TRY;
+        *current = test_write;
+    }
+
+    heap_header.end_address = (uintptr_t)current;
+}
+
+static size_t align(size_t size_to_alloc) {
+    size_t aligned;
+    if (size_to_alloc % MIN_HEAP_BLOCK == 0) {
+        aligned = size_to_alloc;
+    }
+    else {
+        aligned = MIN_HEAP_BLOCK * (size_to_alloc / MIN_HEAP_BLOCK) + MIN_HEAP_BLOCK;
+    }
+    return aligned;
 }
 
 /** Allocate size bytes on heap.
@@ -23,7 +57,15 @@ void heap_init(void) {
  * @retval NULL Out of memory.
  */
 void* kmalloc(size_t size) {
-    return NULL;
+    size_t space_to_alloc = align(size);
+    uintptr_t new_end = heap_header.next_ptr + space_to_alloc;
+    void* alloc_ptr = NULL;
+    
+    if (new_end < heap_header.end_address) {
+        alloc_ptr = (void*)heap_header.next_ptr;
+        heap_header.next_ptr += space_to_alloc;
+    }
+    return alloc_ptr;
 }
 
 /** Free memory previously allocated by kmalloc.
