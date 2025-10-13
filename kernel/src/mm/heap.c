@@ -19,14 +19,14 @@ static heapHeader_t heap_header;
  * Called once during system boot.
  */
 void heap_init(void) {
-    uint8_t test_write = 25;
+    uint64_t test_write = 25;
     uintptr_t start = kernel_get_image_end();
     heap_header.next_ptr = start;
-    volatile uint8_t* current = (uint8_t*)start + FREE_MEM_NEXT_TRY;
+    volatile uint64_t* current = (uint64_t*)start + FREE_MEM_NEXT_TRY / sizeof(test_write);
     *current = test_write;
 
     while (*current == test_write) {
-        current += FREE_MEM_NEXT_TRY;
+        current += FREE_MEM_NEXT_TRY / sizeof(test_write);
         *current = test_write;
     }
 
@@ -60,7 +60,7 @@ void* kmalloc(size_t size) {
     size_t space_to_alloc = align(size);
     uintptr_t new_end = heap_header.next_ptr + space_to_alloc;
     void* alloc_ptr = NULL;
-    
+
     if (new_end < heap_header.end_address) {
         alloc_ptr = (void*)heap_header.next_ptr;
         heap_header.next_ptr += space_to_alloc;
