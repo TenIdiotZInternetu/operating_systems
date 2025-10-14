@@ -2,6 +2,7 @@
 // Copyright 2019 Charles University
 
 
+#include "mm/heap.h"
 #include <adt/list.h>
 #include <debug.h>
 #include <drivers/printer.h>
@@ -30,6 +31,7 @@ const char SPECIFIER_POINTER = 'p';
 
 const char SPECIFIER_FOLLOWUP_LIST = 'L';
 const char SPECIFIER_FOLLOWUP_FUNC = 'F';
+const char SPECIFIER_FOLLOWUP_HEAP = 'A';
 
 char digit_to_char(uint8_t digit, bool uppercase);
 void print_string(const char* string);
@@ -156,6 +158,17 @@ void print_list(list_t* list) {
     printk("]");
 }
 
+static void print_heap() {
+    heap_info_t heap = get_heap_info();
+    printk("[used: %u/%u, free: %u, range: %p-%p]", 
+        heap.max_size - heap.free_size,
+        heap.max_size,
+        heap.free_size,
+        heap.start_address,
+        heap.end_address
+    );
+}
+
 void resolve_specifier(const char** format_it, va_list* args) {
     const char c = *++*format_it;
 
@@ -181,6 +194,8 @@ void resolve_specifier(const char** format_it, va_list* args) {
         if (next_c == '\0') {
             print_pointer(va_arg(*args, void*));
             return;
+        } else if (next_c == SPECIFIER_FOLLOWUP_HEAP) {
+            print_heap();
         } else if (next_c == SPECIFIER_FOLLOWUP_LIST) {
             print_list(va_arg(*args, list_t*));
         } else if (next_c == SPECIFIER_FOLLOWUP_FUNC) {

@@ -4,44 +4,45 @@
 #include <mm/heap.h>
 #include <mm/self.h>
 
-#define FREE_MEM_NEXT_TRY 4096
-#define MIN_HEAP_BLOCK 16
+static const size_t PROBE_STEP = 4096;
+static const uint64_t PROBE_TEST = 0xABABAB;
+static const uint8_t MIN_HEAP_BLOCK = 8;
 
-typedef struct {
-    uintptr_t end_address;
-    uintptr_t next_ptr;
-} heapHeader_t;
+static heap_info_t heap_header;
 
-static heapHeader_t heap_header;
+static uintptr_t get_memory_end() {
+    uintptr_t start = kernel_get_image_end();
+    volatile uint64_t* current = (uint64_t*)start + PROBE_STEP / sizeof(PROBE_TEST);
+    *current = PROBE_TEST;
+
+    while (*current == PROBE_TEST) {
+        current += PROBE_STEP / sizeof(PROBE_TEST);
+        *current = PROBE_TEST;
+    }
+
+    return (uintptr_t)current;
+}
 
 /** Heap initialization.
  *
  * Called once during system boot.
  */
 void heap_init(void) {
-    uint64_t test_write = 25;
-    uintptr_t start = kernel_get_image_end();
-    heap_header.next_ptr = start;
-    volatile uint64_t* current = (uint64_t*)start + FREE_MEM_NEXT_TRY / sizeof(test_write);
-    *current = test_write;
-
-    while (*current == test_write) {
-        current += FREE_MEM_NEXT_TRY / sizeof(test_write);
-        *current = test_write;
-    }
-
-    heap_header.end_address = (uintptr_t)current;
+    heap_header.start_address = kernel_get_image_end();
+    heap_header.next_ptr = heap_header.start_address;
+    heap_header.end_address = get_memory_end();
+    heap_header.max_size = heap_header.end_address - heap_header.start_address;
+    heap_header.free_size = heap_header.max_size;
 }
 
 static size_t align(size_t size_to_alloc) {
-    size_t aligned;
     if (size_to_alloc % MIN_HEAP_BLOCK == 0) {
-        aligned = size_to_alloc;
+        return size_to_alloc;
     }
     else {
-        aligned = MIN_HEAP_BLOCK * (size_to_alloc / MIN_HEAP_BLOCK) + MIN_HEAP_BLOCK;
+        size_t blocks_to_alloc = (size_to_alloc / MIN_HEAP_BLOCK);
+        return MIN_HEAP_BLOCK * (blocks_to_alloc + 1);
     }
-    return aligned;
 }
 
 /** Allocate size bytes on heap.
@@ -58,13 +59,14 @@ static size_t align(size_t size_to_alloc) {
  */
 void* kmalloc(size_t size) {
     size_t space_to_alloc = align(size);
-    uintptr_t new_end = heap_header.next_ptr + space_to_alloc;
-    void* alloc_ptr = NULL;
 
-    if (new_end < heap_header.end_address) {
-        alloc_ptr = (void*)heap_header.next_ptr;
-        heap_header.next_ptr += space_to_alloc;
+    if (space_to_alloc > heap_header.free_size) { 
+        return NULL;
     }
+
+    void* alloc_ptr = (void*)heap_header.next_ptr;
+    heap_header.next_ptr += space_to_alloc;
+    heap_header.free_size -= space_to_alloc;
     return alloc_ptr;
 }
 
@@ -80,4 +82,8 @@ void* kmalloc(size_t size) {
  * @param ptr Pointer to memory to be freed.
  */
 void kfree(void* ptr) {
+}
+
+heap_info_t get_heap_info() {
+    return heap_header;
 }
