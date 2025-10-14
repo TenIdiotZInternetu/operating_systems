@@ -14,6 +14,8 @@ typedef struct {
 
 static heapHeader_t heap_header;
 
+// tools/tester.py suite suites/m02-heap-base.txt
+
 /** Heap initialization.
  *
  * Called once during system boot.
@@ -30,7 +32,7 @@ void heap_init(void) {
         *current = test_write;
     }
 
-    heap_header.end_address = (uintptr_t)current;
+    heap_header.end_address = (uintptr_t)current - FREE_MEM_NEXT_TRY;
 }
 
 static size_t align(size_t size_to_alloc) {
@@ -61,7 +63,7 @@ void* kmalloc(size_t size) {
     uintptr_t new_end = heap_header.next_ptr + space_to_alloc;
     void* alloc_ptr = NULL;
 
-    if (new_end < heap_header.end_address) {
+    if (new_end <= heap_header.end_address) {
         alloc_ptr = (void*)heap_header.next_ptr;
         heap_header.next_ptr += space_to_alloc;
     }
