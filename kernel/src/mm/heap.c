@@ -6,7 +6,7 @@
 
 static const size_t PROBE_STEP = 4096;
 static const uint64_t PROBE_TEST = 0xABABAB;
-static const uint8_t MIN_HEAP_BLOCK = 8;
+static const uint8_t MIN_BLOCK_SIZE = 8;
 
 static heap_info_t heap_header;
 
@@ -36,12 +36,12 @@ void heap_init(void) {
 }
 
 static size_t align(size_t size_to_alloc) {
-    if (size_to_alloc % MIN_HEAP_BLOCK == 0) {
+    if (size_to_alloc % MIN_BLOCK_SIZE == 0) {
         return size_to_alloc;
     }
     else {
-        size_t blocks_to_alloc = (size_to_alloc / MIN_HEAP_BLOCK);
-        return MIN_HEAP_BLOCK * (blocks_to_alloc + 1);
+        size_t blocks_to_alloc = (size_to_alloc / MIN_BLOCK_SIZE);
+        return MIN_BLOCK_SIZE * (blocks_to_alloc + 1);
     }
 }
 
