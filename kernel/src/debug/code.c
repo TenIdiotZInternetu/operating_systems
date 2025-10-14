@@ -15,4 +15,9 @@
  */
 void debug_dump_function(const char* name, uintptr_t address, size_t instruction_count) {
     printk("%x <%s>:\n", address, name);
+
+    for (size_t i = 0; i < instruction_count; ++i) {
+        uintptr_t op_addr = address + 4 * i;
+        printk("%x:        %B\n", op_addr, op_addr);
+    }
 }
