@@ -7,3 +7,7 @@ compile_commands.json
 *.map
 *.o
 *.raw
+
+.cache/
+.idea/
+.vscode/
