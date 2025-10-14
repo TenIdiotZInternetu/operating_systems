@@ -226,16 +226,3 @@ void printk(const char* format, ...) {
 void puts(const char* s) {
     printk("%s\n", s);
 }
-
-
-/** Prints given string to console, terminating it with newline.
- *
- * @param s String to print.
- */
-void puts(const char* s) {
-    while (*s != '\0') {
-        printer_putchar(*s);
-        s++;
-    }
-    printer_putchar('\n');
-}
