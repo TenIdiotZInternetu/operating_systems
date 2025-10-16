@@ -143,7 +143,9 @@ static void coalesce_right(block_head_t* freed_block) {
 }
 
 /**
-* Inserts freed block back to the freed_blocks_list
+* Inserts freed block back to the free_blocks list
+*
+* @param freed_block Block to insert
 */
 static void insert_freed_block(block_head_t* freed_block) {
     // TODO
@@ -166,6 +168,7 @@ void kfree(void* ptr) {
 
     freed_block = coalesce_left(freed_block);
     coalesce_right(freed_block);
+    insert_freed_block(freed_block);
 }
 
 heap_head_t get_heap_info() {
