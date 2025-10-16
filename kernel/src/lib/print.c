@@ -159,7 +159,7 @@ void print_list(list_t* list) {
 }
 
 static void print_heap(void* ptr) {
-    heap_info_t heap = get_heap_info();
+    heap_head_t heap = get_heap_info();
     printk("\
 (%p)[\n \
     used: %u/%u,\n \

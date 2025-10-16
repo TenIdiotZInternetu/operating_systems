@@ -8,7 +8,7 @@ static const size_t PROBE_STEP = 4096;
 static const uint64_t PROBE_TEST = 0xABABAB;
 static const uint8_t MIN_BLOCK_SIZE = 8;
 
-static heap_info_t heap_header;
+static heap_head_t heap_header;
 
 static uintptr_t get_memory_end() {
     uintptr_t start = kernel_get_image_end();
@@ -86,6 +86,6 @@ void* kmalloc(size_t size) {
 void kfree(void* ptr) {
 }
 
-heap_info_t get_heap_info() {
+heap_head_t get_heap_info() {
     return heap_header;
 }

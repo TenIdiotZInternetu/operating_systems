@@ -12,12 +12,13 @@ typedef struct {
     uintptr_t start_address;
     uintptr_t end_address;
     uintptr_t next_ptr;
-} heap_info_t;
+} heap_head_t;
 
 void heap_init(void);
 void* kmalloc(size_t size);
 void kfree(void* ptr);
-heap_info_t get_heap_info(void);
+heap_head_t get_heap_info(void);
 
 
 #endif
+    if (spac
