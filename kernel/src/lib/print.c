@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2019 Charles University
 
-
 #include "mm/heap.h"
 #include <adt/list.h>
 #include <debug.h>
@@ -167,14 +166,13 @@ static void print_heap(void* ptr) {
     range: %p-%p\n \
     first free: %p\n \
 ]\n",
-        ptr,
-        heap.max_size - heap.free_size,
-        heap.max_size,
-        heap.free_size,
-        heap.start_address,
-        heap.end_address,
-        heap.next_ptr
-    );
+            ptr,
+            heap.max_size - heap.free_size,
+            heap.max_size,
+            heap.free_size,
+            heap.start_address,
+            heap.end_address,
+            heap.next_ptr);
 }
 
 void resolve_specifier(const char** format_it, va_list* args) {

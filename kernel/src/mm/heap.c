@@ -40,8 +40,7 @@ void heap_init(void) {
 static size_t align(size_t size_to_alloc) {
     if (size_to_alloc % MIN_BLOCK_SIZE == 0) {
         return size_to_alloc;
-    }
-    else {
+    } else {
         size_t blocks_to_alloc = (size_to_alloc / MIN_BLOCK_SIZE);
         return MIN_BLOCK_SIZE * (blocks_to_alloc + 1);
     }
@@ -62,7 +61,7 @@ static size_t align(size_t size_to_alloc) {
 void* kmalloc(size_t size) {
     size_t space_to_alloc = align(size);
 
-    if (space_to_alloc > heap_header.free_size) { 
+    if (space_to_alloc > heap_header.free_size) {
         return NULL;
     }
 

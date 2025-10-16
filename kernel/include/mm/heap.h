@@ -19,5 +19,4 @@ void* kmalloc(size_t size);
 void kfree(void* ptr);
 heap_head_t get_heap_info(void);
 
-
 #endif
