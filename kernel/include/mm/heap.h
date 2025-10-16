@@ -21,4 +21,3 @@ heap_head_t get_heap_info(void);
 
 
 #endif
-    if (spac
