@@ -20,8 +20,10 @@ static uintptr_t get_memory_end() {
         *current = PROBE_TEST;
     }
 
-    return (uintptr_t)current;
+    return (uintptr_t)current - PROBE_STEP;
 }
+
+// tools/tester.py suite suites/m02-heap-base.txt
 
 /** Heap initialization.
  *
