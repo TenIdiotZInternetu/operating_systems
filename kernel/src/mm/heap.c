@@ -17,7 +17,7 @@ typedef struct {
     link_t link;
 } block_head_t;
 
-typedef uintptr_t block_tail_t; 
+typedef block_head_t* block_tail_t; 
 
 
 static uintptr_t get_memory_end() {
@@ -82,8 +82,9 @@ static block_head_t* first_fit(size_t size_to_alloc) {
 * Used block is removed from the list of free blocks, free block is inserted.
 *
 * @param free_block Pointer to free block to split
+* @param size_to_alloc Size of the created used block without head and tail
 */
-static void split_block(block_head_t* free_block) {
+static void split_block(block_head_t* free_block, size_t size_to_alloc) {
     // TODO
 }
 
@@ -112,7 +113,7 @@ void* kmalloc(size_t size) {
         return NULL;
     }
 
-    split_block(found_block);
+    split_block(found_block, size);
 
     // Return first address after head
     void* alloc_ptr = (void*)(found_block + 1);
@@ -127,7 +128,7 @@ void* kmalloc(size_t size) {
 * @return Pointer to the resulting free block
 */
 static block_head_t* coalesce_left(block_head_t* freed_block) {
-    // TODO
+    // TODO *
     // Get to prev block through its tail
 }
 
@@ -138,7 +139,7 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
 * @param used_block Block to be coalesced
 */
 static void coalesce_right(block_head_t* freed_block) {
-    // TODO
+    // TODO *
     // Get to next block by adding the address and size of the freed block
 }
 
@@ -148,7 +149,7 @@ static void coalesce_right(block_head_t* freed_block) {
 * @param freed_block Block to insert
 */
 static void insert_freed_block(block_head_t* freed_block) {
-    // TODO
+    // TODO *
 }
 
 /** Free memory previously allocated by kmalloc.
