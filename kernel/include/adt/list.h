@@ -290,7 +290,20 @@ static inline link_t* list_rotate(list_t* list) {
 * @param new_link Link of the item inserted into the list 
 */
 static inline void list_insert_after(list_t* list, link_t* prev_link, link_t* new_link) {
-    // TODO
+    assert(list != NULL);
+    assert(prev_link != NULL);
+    assert(new_link != NULL);
+
+    link_t *former_next = prev_link->next;
+
+
+    // Set connection backwards
+    prev_link->next = new_link;
+    new_link->prev = prev_link;
+
+    // Set connection forwards
+    former_next->prev = new_link;
+    new_link->next = former_next;
 }
 
 /**
