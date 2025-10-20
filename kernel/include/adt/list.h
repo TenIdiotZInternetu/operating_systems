@@ -294,16 +294,25 @@ static inline void list_insert_after(list_t* list, link_t* prev_link, link_t* ne
     assert(prev_link != NULL);
     assert(new_link != NULL);
 
-    link_t *former_next = prev_link->next;
+    if (!link_is_connected(prev_link)) {
+        list_append(list, prev_link);
+    }
 
-
+    if (prev_link->next != NULL) {
+        // Set connection forwards
+        link_t *former_next = prev_link->next;
+        former_next->prev = new_link;
+        new_link->next = former_next;
+    }
+    
     // Set connection backwards
     prev_link->next = new_link;
     new_link->prev = prev_link;
 
-    // Set connection forwards
-    former_next->prev = new_link;
-    new_link->next = former_next;
+   
+    /** TODO consider checking if list contains prev_link
+    * maybe create another(safe) version of the function as it would affect performance
+    */
 }
 
 /**
