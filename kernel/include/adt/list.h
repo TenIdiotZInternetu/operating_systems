@@ -294,6 +294,17 @@ static inline void list_insert_after(list_t* list, link_t* prev_link, link_t* ne
     assert(prev_link != NULL);
     assert(new_link != NULL);
 
+
+      
+    /** TODO consider checking if list contains prev_link
+    * maybe create another(safe) version of the function as it would affect performance
+    */
+
+    // Do not reuse a link already in a list
+    if (link_is_connected(new_link)) {
+        list_remove(new_link);
+    }
+
     if (!link_is_connected(prev_link)) {
         list_append(list, prev_link);
     }
@@ -309,10 +320,7 @@ static inline void list_insert_after(list_t* list, link_t* prev_link, link_t* ne
     prev_link->next = new_link;
     new_link->prev = prev_link;
 
-   
-    /** TODO consider checking if list contains prev_link
-    * maybe create another(safe) version of the function as it would affect performance
-    */
+ 
 }
 
 /**
@@ -323,8 +331,42 @@ static inline void list_insert_after(list_t* list, link_t* prev_link, link_t* ne
 * @param new_link Link of the item inserted into the list 
 */
 static inline void list_insert_before(list_t* list, link_t* next_link, link_t* new_link) {
+
+
+    /*
     // TODO careful about edgecase
     list_insert_after(list, next_link->prev, new_link); // reusing may not be the right call
+    */
+    assert(list != NULL);
+    assert(next_link != NULL);
+    assert(new_link != NULL);
+
+    /** TODO consider checking if list contains prev_link
+    * maybe create another(safe) version of the function as it would affect performance
+    */
+
+    // Do not reuse a link already in a list
+    if (link_is_connected(new_link)) {
+        list_remove(new_link);
+    }
+
+    if (!link_is_connected(next_link)) {
+        list_append(list, new_link);
+        list_append(list, next_link);
+    } else {
+
+        // has to exist, otherwise we would have been in the previous scope
+        link_t *former_prev = next_link->prev;
+
+        // Set connection backwards
+        former_prev->next = new_link;
+        new_link->prev = former_prev;
+
+        // Set connection forwards
+        new_link->next = next_link;
+        next_link->prev = new_link;
+    }
+
 }
 
 #endif
