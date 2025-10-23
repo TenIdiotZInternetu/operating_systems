@@ -294,7 +294,6 @@ static inline void list_insert_after(list_t* list, link_t* prev_link, link_t* ne
     assert(prev_link != NULL);
     assert(new_link != NULL);
 
-
       
     /** TODO consider checking if list contains prev_link
     * maybe create another(safe) version of the function as it would affect performance
@@ -303,6 +302,11 @@ static inline void list_insert_after(list_t* list, link_t* prev_link, link_t* ne
     // Do not reuse a link already in a list
     if (link_is_connected(new_link)) {
         list_remove(new_link);
+    }
+
+    if (prev_link == &list->head) {
+        list_prepend(list, new_link);
+        return;
     }
 
     if (!link_is_connected(prev_link)) {
@@ -348,6 +352,11 @@ static inline void list_insert_before(list_t* list, link_t* next_link, link_t* n
     // Do not reuse a link already in a list
     if (link_is_connected(new_link)) {
         list_remove(new_link);
+    }
+
+    if (next_link == &list->head) {
+        list_append(list, new_link);
+        return;
     }
 
     if (!link_is_connected(next_link)) {
