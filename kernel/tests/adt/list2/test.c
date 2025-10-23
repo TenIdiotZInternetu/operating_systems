@@ -69,3 +69,122 @@ void kernel_test(void) {
 
     ktest_passed();
 }
+
+
+/***************************************
+ * Tests: list_insert_after()
+ ***************************************/
+
+void test_insert_after_basic() {
+    list_t list;
+    list_init(&list);
+
+    item_t a, b, c;
+    item_init(&a, 1);
+    item_init(&b, 2);
+    item_init(&c, 3);
+
+    list_append(&list, &a.link); // list: 1
+    list_insert_after(&list, &a.link, &b.link); // list: 1, 2
+    list_insert_after(&list, &b.link, &c.link); // list: 1, 2, 3
+
+    CHECK_LIST_CONTENTS(3, list, 1, 2, 3);
+    ktest_passed();
+}
+
+void test_insert_after_head() {
+    list_t list;
+    list_init(&list);
+
+    item_t a, b;
+    item_init(&a, 1);
+    item_init(&b, 2);
+
+    list_insert_after(&list, &list.head, &a.link);
+    list_insert_after(&list, &a.link, &b.link);
+
+    CHECK_LIST_CONTENTS(2, list, 1, 2);
+    ktest_passed();
+}
+
+void test_insert_after_prev_link_not_connected_appends_links() {
+    list_t list;
+    list_init(&list);
+
+    item_t a, b, c;
+    item_init(&a, 1);
+    item_init(&b, 2);
+    item_init(&c, 3);
+
+    list_append(&list, &a.link);
+
+    list_insert_after(&list, &b.link, &c.link);
+
+    CHECK_LIST_CONTENTS(3, list, 1, 2, 3);
+    ktest_passed();
+}
+
+void test_insert_after_empty_list_appends_links() {
+    list_t list;
+    list_init(&list);
+
+    item_t a, b;
+    item_init(&a, 1);
+    item_init(&b, 2);
+
+    list_insert_after(&list, &a.link, &b.link);
+
+    CHECK_LIST_CONTENTS(2, list, 1, 2);
+    ktest_passed();
+}
+
+
+/***************************************
+ * Tests: list_insert_before()
+ ***************************************/
+
+void test_insert_before_basic() {
+    list_t list;
+    list_init(&list);
+
+    item_t a, b, c;
+    item_init(&a, 1);
+    item_init(&b, 2);
+    item_init(&c, 3);
+
+    list_append(&list, &a.link); // list: 1
+    list_append(&list, &c.link); // list: 1, 3
+    list_insert_before(&list, &c.link, &b.link); // list: 1, 2, 3
+
+    CHECK_LIST_CONTENTS(3, list, 1, 2, 3);
+    ktest_passed();
+}
+
+void test_insert_before_head() {
+    list_t list;
+    list_init(&list);
+
+    item_t a, b;
+    item_init(&a, 1);
+    item_init(&b, 2);
+
+    list_insert_before(&list, &list.head, &b.link);
+    list_insert_before(&list, &b.link, &a.link);
+
+    CHECK_LIST_CONTENTS(2, list, 1, 2);
+    ktest_passed();
+}
+
+void test_insert_before_empty_list_appends_links() {
+    list_t list;
+    list_init(&list);
+
+    item_t a, b;
+    item_init(&a, 1);
+    item_init(&b, 2);
+
+    list_insert_before(&list, &b.link, &a.link);
+
+    CHECK_LIST_CONTENTS(2, list, 1, 2);
+    ktest_passed();
+}
