@@ -17,8 +17,7 @@ typedef struct {
     link_t link;
 } block_head_t;
 
-typedef block_head_t* block_tail_t; 
-
+typedef block_head_t* block_tail_t;
 
 static uintptr_t get_memory_end() {
     uintptr_t start = kernel_get_image_end();
@@ -129,7 +128,22 @@ void* kmalloc(size_t size) {
 */
 static block_head_t* coalesce_left(block_head_t* freed_block) {
     // TODO *
+    size_t aligned_head_size = align(sizeof(block_head_t));
+    size_t aligned_tail_size = align(sizeof(block_tail_t));
+
     // Get to prev block through its tail
+    block_tail_t prev_tail = freed_block - aligned_tail_size;
+    block_head_t* prev_head = prev_tail;
+
+    if (prev_head->is_free) {
+        prev_head->size += aligned_tail_size + aligned_head_size + freed_block->size;
+        block_tail_t* freed_tail = freed_block + aligned_head_size + freed_block->size;
+        *freed_tail = &prev_head;
+        return &prev_head; 
+    }
+    else {
+        return freed_block;
+    }
 }
 
 /**
@@ -140,7 +154,17 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
 */
 static void coalesce_right(block_head_t* freed_block) {
     // TODO *
+    size_t aligned_head_size = align(sizeof(block_head_t));
+    size_t aligned_tail_size = align(sizeof(block_tail_t));
+    
     // Get to next block by adding the address and size of the freed block
+    block_head_t* next_head = freed_block + aligned_head_size + freed_block->size + aligned_tail_size;
+    if (next_head->is_free) {
+        freed_block->size += aligned_tail_size + aligned_head_size + next_head->size;
+        block_tail_t* freed_tail = freed_block + aligned_head_size + freed_block->size;
+        *freed_tail = freed_block;
+        list_remove(&next_head->link);
+    } 
 }
 
 /**
@@ -150,6 +174,7 @@ static void coalesce_right(block_head_t* freed_block) {
 */
 static void insert_freed_block(block_head_t* freed_block) {
     // TODO *
+    list_prepend(&heap_header.free_blocks, &freed_block->link);
 }
 
 /** Free memory previously allocated by kmalloc.
@@ -164,12 +189,16 @@ static void insert_freed_block(block_head_t* freed_block) {
  * @param ptr Pointer to memory to be freed.
  */
 void kfree(void* ptr) {
-    block_head_t* freed_block = (block_head_t*)ptr - 1;
-    freed_block->is_free = true;
+    // here should be aligned 
+    block_head_t* freed_block_head = (block_head_t*)ptr - 1;
+    freed_block_head->is_free = true;
 
-    freed_block = coalesce_left(freed_block);
-    coalesce_right(freed_block);
-    insert_freed_block(freed_block);
+    block_head_t* new_head = coalesce_left(freed_block_head);
+    bool coalesced_left = new_head == freed_block_head;
+    coalesce_right(new_head);
+    if (!coalesced_left) {
+        insert_freed_block(new_head);
+    }
 }
 
 heap_head_t get_heap_info() {
