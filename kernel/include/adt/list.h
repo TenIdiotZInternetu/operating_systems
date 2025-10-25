@@ -283,99 +283,51 @@ static inline link_t* list_rotate(list_t* list) {
 }
 
 /**
-* Inserts an item after an existing item in the list
-*
-* @param list List to insert to
-* @param prev_link Link in the list, after which the the new item should follow
-* @param new_link Link of the item inserted into the list 
-*/
+ * Inserts an item after an existing item in the list
+ *
+ * @param list List to insert to
+ * @param prev_link Link in the list, after which the the new item should follow
+ * @param new_link Link of the item inserted into the list
+ */
 static inline void list_insert_after(list_t* list, link_t* prev_link, link_t* new_link) {
-    assert(list != NULL);
     assert(prev_link != NULL);
     assert(new_link != NULL);
 
-      
-    /** TODO consider checking if list contains prev_link
-    * maybe create another(safe) version of the function as it would affect performance
-    */
+    assert(!link_is_connected(new_link));
+    assert(link_is_connected(prev_link));
 
-    // Do not reuse a link already in a list
-    if (link_is_connected(new_link)) {
-        list_remove(new_link);
-    }
+    // Set connection forwards
+    link_t* former_next = prev_link->next;
+    former_next->prev = new_link;
+    new_link->next = former_next;
 
-    if (prev_link == &list->head) {
-        list_prepend(list, new_link);
-        return;
-    }
-
-    if (!link_is_connected(prev_link)) {
-        list_append(list, prev_link);
-    }
-
-    if (prev_link->next != NULL) {
-        // Set connection forwards
-        link_t *former_next = prev_link->next;
-        former_next->prev = new_link;
-        new_link->next = former_next;
-    }
-    
     // Set connection backwards
     prev_link->next = new_link;
     new_link->prev = prev_link;
-
- 
 }
 
 /**
-* Inserts an item after an existing item in the list
-*
-* @param list List to insert to
-* @param next_link Link in the list, before which the new item should follow
-* @param new_link Link of the item inserted into the list 
-*/
+ * Inserts an item after an existing item in the list
+ *
+ * @param list List to insert to
+ * @param next_link Link in the list, before which the new item should follow
+ * @param new_link Link of the item inserted into the list
+ */
 static inline void list_insert_before(list_t* list, link_t* next_link, link_t* new_link) {
-
-
-    /*
-    // TODO careful about edgecase
-    list_insert_after(list, next_link->prev, new_link); // reusing may not be the right call
-    */
-    assert(list != NULL);
     assert(next_link != NULL);
     assert(new_link != NULL);
 
-    /** TODO consider checking if list contains prev_link
-    * maybe create another(safe) version of the function as it would affect performance
-    */
+    assert(!link_is_connected(new_link));
+    assert(link_is_connected(next_link));
 
-    // Do not reuse a link already in a list
-    if (link_is_connected(new_link)) {
-        list_remove(new_link);
-    }
+    // Set connection backwards
+    link_t* former_prev = next_link->prev;
+    former_prev->next = new_link;
+    new_link->prev = former_prev;
 
-    if (next_link == &list->head) {
-        list_append(list, new_link);
-        return;
-    }
-
-    if (!link_is_connected(next_link)) {
-        list_append(list, new_link);
-        list_append(list, next_link);
-    } else {
-
-        // has to exist, otherwise we would have been in the previous scope
-        link_t *former_prev = next_link->prev;
-
-        // Set connection backwards
-        former_prev->next = new_link;
-        new_link->prev = former_prev;
-
-        // Set connection forwards
-        new_link->next = next_link;
-        next_link->prev = new_link;
-    }
-
+    // Set connection forwards
+    new_link->next = next_link;
+    next_link->prev = new_link;
 }
 
 #endif
