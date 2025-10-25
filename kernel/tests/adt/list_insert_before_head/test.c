@@ -5,7 +5,6 @@
 #include <ktest.h>
 #include <ktest/list_checking.h>
 
-
 void kernel_test(void) {
     ktest_start("adt/list_insert_before_head");
 
