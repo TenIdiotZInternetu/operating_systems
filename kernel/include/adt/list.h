@@ -283,26 +283,51 @@ static inline link_t* list_rotate(list_t* list) {
 }
 
 /**
-* Inserts an item after an existing item in the list
-*
-* @param list List to insert to
-* @param prev_link Link in the list, after which the the new item should follow
-* @param new_link Link of the item inserted into the list 
-*/
+ * Inserts an item after an existing item in the list
+ *
+ * @param list List to insert to
+ * @param prev_link Link in the list, after which the the new item should follow
+ * @param new_link Link of the item inserted into the list
+ */
 static inline void list_insert_after(list_t* list, link_t* prev_link, link_t* new_link) {
-    // TODO
+    assert(prev_link != NULL);
+    assert(new_link != NULL);
+
+    assert(!link_is_connected(new_link));
+    assert(link_is_connected(prev_link));
+
+    // Set connection forwards
+    link_t* former_next = prev_link->next;
+    former_next->prev = new_link;
+    new_link->next = former_next;
+
+    // Set connection backwards
+    prev_link->next = new_link;
+    new_link->prev = prev_link;
 }
 
 /**
-* Inserts an item after an existing item in the list
-*
-* @param list List to insert to
-* @param next_link Link in the list, before which the new item should follow
-* @param new_link Link of the item inserted into the list 
-*/
+ * Inserts an item after an existing item in the list
+ *
+ * @param list List to insert to
+ * @param next_link Link in the list, before which the new item should follow
+ * @param new_link Link of the item inserted into the list
+ */
 static inline void list_insert_before(list_t* list, link_t* next_link, link_t* new_link) {
-    // TODO careful about edgecase
-    list_insert_after(list, next_link->prev, new_link); // reusing may not be the right call
+    assert(next_link != NULL);
+    assert(new_link != NULL);
+
+    assert(!link_is_connected(new_link));
+    assert(link_is_connected(next_link));
+
+    // Set connection backwards
+    link_t* former_prev = next_link->prev;
+    former_prev->next = new_link;
+    new_link->prev = former_prev;
+
+    // Set connection forwards
+    new_link->next = next_link;
+    next_link->prev = new_link;
 }
 
 #endif
