@@ -169,6 +169,10 @@ function returns the address of the first byte after the kernel image.
 Note that it is safe to probe the memory in blocks of 4 KiB to speed up the
 detection.
 
+For practical purposes, you can also safely assume that there will never be
+more than 256MB of memory available (the simulated RAM starts at 0x80000000
+and at 0x90000000 is placed the printer device).
+
 
 ## Debugging extension for `printk()`
 
