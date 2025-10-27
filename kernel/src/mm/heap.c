@@ -33,11 +33,11 @@ static uintptr_t get_memory_end() {
 }
 
 /**
-* Initializes the free_blocks list and inserts one free block
-* of the size of entire memory minus size of the head and tail
-*
-* @return Pointer to the initialized free block
-*/
+ * Initializes the free_blocks list and inserts one free block
+ * of the size of entire memory minus size of the head and tail
+ *
+ * @return Pointer to the initialized free block
+ */
 static block_head_t* init_free_blocks_list(void) {
     // TODO
 }
@@ -53,7 +53,6 @@ void heap_init(void) {
 
     heap_header.max_size = init_block->size;
     heap_header.free_size = heap_header.max_size;
-
 }
 
 static size_t align(size_t size_to_alloc) {
@@ -66,23 +65,23 @@ static size_t align(size_t size_to_alloc) {
 }
 
 /**
-* Iterates through heap's free blocks, returns first that fits
-*
-* @param size_to_alloc size of allocated data
-* @return Pointer to first free block head
-* @retval NULL No big enough block found
-*/
+ * Iterates through heap's free blocks, returns first that fits
+ *
+ * @param size_to_alloc size of allocated data
+ * @return Pointer to first free block head
+ * @retval NULL No big enough block found
+ */
 static block_head_t* first_fit(size_t size_to_alloc) {
-    // TODO 
+    // TODO
 }
 
 /**
-* Splits a free block into two, first used, second free.
-* Used block is removed from the list of free blocks, free block is inserted.
-*
-* @param free_block Pointer to free block to split
-* @param size_to_alloc Size of the created used block without head and tail
-*/
+ * Splits a free block into two, first used, second free.
+ * Used block is removed from the list of free blocks, free block is inserted.
+ *
+ * @param free_block Pointer to free block to split
+ * @param size_to_alloc Size of the created used block without head and tail
+ */
 static void split_block(block_head_t* free_block, size_t size_to_alloc) {
     // TODO
 }
@@ -120,60 +119,61 @@ void* kmalloc(size_t size) {
 }
 
 /**
-* Checks if the block to the left is free. If yes the two blocks are merged
-* into one free block. If not, the pass block is returned. 
-*
-* @param used_block Block to be coalesced
-* @return Pointer to the resulting free block
-*/
-static block_head_t* coalesce_left(block_head_t* freed_block) {
-    // TODO *
-    size_t aligned_head_size = align(sizeof(block_head_t));
-    size_t aligned_tail_size = align(sizeof(block_tail_t));
+ *
+ * Changes the head of the left block and the tail of the right block,
+ * so that the right block is merged into the left
+ *
+ * @param left_block Pointer to the head of the block we are merging into
+ * @param right_block Pointer to the head of the block we will merge into the left block
+ */
+static void coalesce(block_head_t* left_block, block_head_t* right_block) {
+    left_block->size += align(sizeof(block_tail_t)) + align(sizeof(block_head_t)) + right_block->size;
+    block_tail_t* right_tail = (void*)right_block + align(sizeof(block_head_t)) + right_block->size;
+    *right_tail = left_block;
+}
 
+/**
+ * Checks if the block to the left is free. If yes the two blocks are merged
+ * into one free block. If not, the pass block is returned.
+ *
+ * @param used_block Block to be coalesced
+ * @return Pointer to the resulting free block
+ */
+static block_head_t* coalesce_left(block_head_t* freed_block) {
     // Get to prev block through its tail
-    block_tail_t prev_tail = freed_block - aligned_tail_size;
-    block_head_t* prev_head = prev_tail;
+    block_tail_t* prev_tail = (void*)freed_block - align(sizeof(block_tail_t));
+    block_head_t* prev_head = *prev_tail;
 
     if (prev_head->is_free) {
-        prev_head->size += aligned_tail_size + aligned_head_size + freed_block->size;
-        block_tail_t* freed_tail = freed_block + aligned_head_size + freed_block->size;
-        *freed_tail = &prev_head;
-        return &prev_head; 
-    }
-    else {
+        coalesce(prev_head, freed_block);
+        return prev_head;
+    } else {
         return freed_block;
     }
 }
 
 /**
-* Checks if the block to the right is free. If yes the two blocks are merged
-* into one free block. 
-*
-* @param used_block Block to be coalesced
-*/
+ * Checks if the block to the right is free. If yes the two blocks are merged
+ * into one free block.
+ *
+ * @param used_block Block to be coalesced
+ */
 static void coalesce_right(block_head_t* freed_block) {
-    // TODO *
-    size_t aligned_head_size = align(sizeof(block_head_t));
-    size_t aligned_tail_size = align(sizeof(block_tail_t));
-    
     // Get to next block by adding the address and size of the freed block
-    block_head_t* next_head = freed_block + aligned_head_size + freed_block->size + aligned_tail_size;
+    block_head_t* next_head = (void*)freed_block + align(sizeof(block_head_t)) + freed_block->size + align(sizeof(block_tail_t));
+
     if (next_head->is_free) {
-        freed_block->size += aligned_tail_size + aligned_head_size + next_head->size;
-        block_tail_t* freed_tail = freed_block + aligned_head_size + freed_block->size;
-        *freed_tail = freed_block;
+        coalesce(freed_block, next_head);
         list_remove(&next_head->link);
-    } 
+    }
 }
 
 /**
-* Inserts freed block back to the free_blocks list
-*
-* @param freed_block Block to insert
-*/
+ * Inserts freed block back to the free_blocks list
+ *
+ * @param freed_block Block to insert
+ */
 static void insert_freed_block(block_head_t* freed_block) {
-    // TODO *
     list_prepend(&heap_header.free_blocks, &freed_block->link);
 }
 
@@ -189,8 +189,7 @@ static void insert_freed_block(block_head_t* freed_block) {
  * @param ptr Pointer to memory to be freed.
  */
 void kfree(void* ptr) {
-    // here should be aligned 
-    block_head_t* freed_block_head = (block_head_t*)ptr - 1;
+    block_head_t* freed_block_head = ptr - align(sizeof(block_head_t));
     freed_block_head->is_free = true;
 
     block_head_t* new_head = coalesce_left(freed_block_head);
