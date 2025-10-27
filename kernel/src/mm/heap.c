@@ -128,7 +128,7 @@ void* kmalloc(size_t size) {
  */
 static void coalesce(block_head_t* left_block, block_head_t* right_block) {
     left_block->size += align(sizeof(block_tail_t)) + align(sizeof(block_head_t)) + right_block->size;
-    block_tail_t* right_tail = (void*)right_block + align(sizeof(block_head_t)) + right_block->size;
+    block_tail_t* right_tail = (block_tail_t*)((uint8_t*)right_block + align(sizeof(block_head_t)) + right_block->size);
     *right_tail = left_block;
 }
 
@@ -141,7 +141,7 @@ static void coalesce(block_head_t* left_block, block_head_t* right_block) {
  */
 static block_head_t* coalesce_left(block_head_t* freed_block) {
     // Get to prev block through its tail
-    block_tail_t* prev_tail = (void*)freed_block - align(sizeof(block_tail_t));
+    block_tail_t* prev_tail = (block_tail_t*)((uint8_t*)freed_block - align(sizeof(block_tail_t)));
     block_head_t* prev_head = *prev_tail;
 
     if (prev_head->is_free) {
@@ -160,7 +160,7 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
  */
 static void coalesce_right(block_head_t* freed_block) {
     // Get to next block by adding the address and size of the freed block
-    block_head_t* next_head = (void*)freed_block + align(sizeof(block_head_t)) + freed_block->size + align(sizeof(block_tail_t));
+    block_head_t* next_head = (block_head_t*)((uint8_t*)freed_block + align(sizeof(block_head_t)) + freed_block->size + align(sizeof(block_tail_t)));
 
     if (next_head->is_free) {
         coalesce(freed_block, next_head);
@@ -189,7 +189,7 @@ static void insert_freed_block(block_head_t* freed_block) {
  * @param ptr Pointer to memory to be freed.
  */
 void kfree(void* ptr) {
-    block_head_t* freed_block_head = ptr - align(sizeof(block_head_t));
+    block_head_t* freed_block_head = (block_head_t*)((uint8_t*)ptr - align(sizeof(block_head_t)));
     freed_block_head->is_free = true;
 
     block_head_t* new_head = coalesce_left(freed_block_head);
