@@ -164,15 +164,13 @@ static void print_heap(void* ptr) {
     used: %u/%u,\n \
     free: %u,\n \
     range: %p-%p\n \
-    first free: %p\n \
 ]\n",
             ptr,
             heap.max_size - heap.free_size,
             heap.max_size,
             heap.free_size,
             heap.start_address,
-            heap.end_address,
-            heap.next_ptr);
+            heap.end_address);
 }
 
 void resolve_specifier(const char** format_it, va_list* args) {

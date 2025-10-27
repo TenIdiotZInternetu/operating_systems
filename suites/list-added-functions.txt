@@ -1,0 +1,9 @@
+# Behavior of newly implemented list_t functions
+kernel adt/list_insert_after_basic
+kernel adt/list_insert_after_empty_list
+kernel adt/list_insert_after_head
+kernel adt/list_insert_after_prev_link_not_connected
+kernel adt/list_insert_before_basic
+kernel adt/list_insert_before_empty_list
+kernel adt/list_insert_before_head
+kernel adt/list_insert_before_next_link_not_connected
