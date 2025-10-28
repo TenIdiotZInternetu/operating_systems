@@ -9,6 +9,8 @@ static const size_t PROBE_STEP = 4096;
 static const uint64_t PROBE_TEST = 0xABABAB;
 static const uint8_t MIN_BLOCK_SIZE = 8;
 
+static uint32_t mock_heap[MOCK_HEAP_SIZE / sizeof(uint32_t)];
+
 static heap_head_t heap_header;
 
 typedef struct {
@@ -17,21 +19,24 @@ typedef struct {
     link_t link;
 } block_head_t;
 
-typedef block_head_t* block_tail_t; 
+typedef block_head_t* block_tail_t;
 
 
-static uintptr_t get_memory_end() {
-    uintptr_t start = kernel_get_image_end();
-    volatile uint64_t* current = (uint64_t*)start + PROBE_STEP / sizeof(PROBE_TEST);
+static uintptr_t get_memory_end(void)
+{
+    uintptr_t start = (uintptr_t)kernel_get_image_end();
+    volatile uint64_t *current = (volatile uint64_t *)(start + PROBE_STEP);
+
     *current = PROBE_TEST;
 
     while (*current == PROBE_TEST) {
-        current += PROBE_STEP / sizeof(PROBE_TEST);
+        current = (volatile uint64_t *)((uintptr_t)current + PROBE_STEP);
         *current = PROBE_TEST;
     }
 
     return (uintptr_t)current - PROBE_STEP;
 }
+
 
 /**
 * Initializes the free_blocks list and inserts one free block
@@ -40,7 +45,23 @@ static uintptr_t get_memory_end() {
 * @return Pointer to the initialized free block
 */
 static block_head_t* init_free_blocks_list(void) {
-    // TODO
+
+    // Write head
+    block_head_t *p_first_block_head = kernel_get_image_end();
+    p_first_block_head->is_free = true;
+    p_first_block_head->size = (get_memory_end() - kernel_get_image_end()) - get_block_head_tail_size();
+
+    // Write tail
+    block_tail_t *p_first_block_tail = (block_tail_t *)(
+        (uint8_t *)p_first_block_head + p_first_block_head->size
+    );
+    *p_first_block_tail = p_first_block_head;
+
+    link_init(&p_first_block_head->link);
+
+    list_append(&heap_header.free_blocks, &p_first_block_head->link);
+
+    return p_first_block_head;
 }
 
 /** Heap initialization.
@@ -67,6 +88,29 @@ static size_t align(size_t size_to_alloc) {
 }
 
 /**
+ * Get the total metadata size for a memory block
+ *
+ * @return Total size of the block header and tail.
+ */
+static size_t get_block_head_tail_size() {
+    return sizeof(block_head_t) + sizeof(block_tail_t);
+}
+
+/**
+ * Checks if a requested allocation size fits into a free block, considering the
+ * necessary overhead for block headers and tails.
+ * 
+ * @param size_to_fit: Requested size to allocate
+ * @param free_size: Current size of the free memory block
+ *
+ * @return true if the requested size fits within the free block (including
+ *         metadata overhead), false otherwise.
+ */
+static bool fits_to_free_block(size_t size_to_fit, size_t free_size) {
+    return size_to_fit <= (free_size - get_block_head_tail_size());
+}
+
+/**
 * Iterates through heap's free blocks, returns first that fits
 *
 * @param size_to_alloc size of allocated data
@@ -74,7 +118,13 @@ static size_t align(size_t size_to_alloc) {
 * @retval NULL No big enough block found
 */
 static block_head_t* first_fit(size_t size_to_alloc) {
-    // TODO 
+    list_foreach(heap_header.free_blocks, block_head_t, link, block) {
+        if (block->is_free && (fits_to_free_block(size_to_alloc, block->size))) {
+            return &block;
+        }
+    }
+
+    return NULL;
 }
 
 /**
@@ -84,8 +134,47 @@ static block_head_t* first_fit(size_t size_to_alloc) {
 * @param free_block Pointer to free block to split
 * @param size_to_alloc Size of the created used block without head and tail
 */
-static void split_block(block_head_t* free_block, size_t size_to_alloc) {
-    // TODO
+static void split_block(block_head_t *free_block, size_t size_to_alloc)
+{
+    const size_t block_overhead = get_block_head_tail_size();
+    const size_t used_block_required_size = size_to_alloc + block_overhead;
+
+    assert(used_block_required_size <= free_block->size);
+
+    link_t *next_free_block_link = free_block->link.next;
+    list_remove(&free_block->link);
+
+    // Write used block tail
+    block_tail_t *p_used_block_tail = (block_tail_t *)(
+        (uint8_t *)free_block + used_block_required_size - sizeof(block_tail_t)
+    );
+    *p_used_block_tail = free_block;
+
+    // If there won't be space for the new free block, return
+    size_t remaining_free_size = free_block->size - used_block_required_size;
+    if (remaining_free_size <= block_overhead)
+        return;
+
+    // Initialize the new free block
+    block_head_t *p_new_free_block_head = (block_head_t *)(
+        (uint8_t *)free_block + used_block_required_size
+    );
+    p_new_free_block_head->is_free = true;
+    p_new_free_block_head->size = remaining_free_size - block_overhead;
+    link_init(&p_new_free_block_head->link);
+    
+    // Write free block tail
+    block_tail_t *p_new_free_block_tail = (block_tail_t *)(
+        (uint8_t *)p_new_free_block_head + p_new_free_block_head->size
+    );
+    *p_new_free_block_tail = p_new_free_block_head;
+
+    // Insert new free block into free list
+    list_insert_before(&heap_header.free_blocks, next_free_block_link, &p_new_free_block_head->link);
+
+    // Update heap free size
+    heap_header.free_size -= used_block_required_size;
+    heap_header.free_size += p_new_free_block_head->size;
 }
 
 /** Allocate size bytes on heap.
@@ -103,7 +192,7 @@ static void split_block(block_head_t* free_block, size_t size_to_alloc) {
 void* kmalloc(size_t size) {
     size_t space_to_alloc = align(size);
 
-    if (space_to_alloc > heap_header.free_size) {
+    if (space_to_alloc + get_block_head_tail_size() > heap_header.free_size) {
         return NULL;
     }
 
@@ -113,10 +202,10 @@ void* kmalloc(size_t size) {
         return NULL;
     }
 
-    split_block(found_block, size);
+    split_block(found_block, space_to_alloc);
 
     // Return first address after head
-    void* alloc_ptr = (void*)(found_block + 1);
+    void *alloc_ptr = (void*)(found_block + 1);
     return alloc_ptr;
 }
 
