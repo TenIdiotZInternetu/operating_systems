@@ -9,7 +9,6 @@ static const size_t PROBE_STEP = 4096;
 static const uint64_t PROBE_TEST = 0xABABAB;
 static const uint8_t MIN_BLOCK_SIZE = 8;
 
-static uint32_t mock_heap[MOCK_HEAP_SIZE / sizeof(uint32_t)];
 
 static heap_head_t heap_header;
 
