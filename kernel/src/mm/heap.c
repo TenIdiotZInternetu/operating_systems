@@ -20,6 +20,14 @@ typedef struct {
 
 typedef block_head_t* block_tail_t;
 
+/**
+ * Get the total metadata size for a memory block
+ *
+ * @return Total size of the block header and tail.
+ */
+static size_t get_block_head_tail_size() {
+    return sizeof(block_head_t) + sizeof(block_tail_t);
+}
 
 static uintptr_t get_memory_end(void)
 {
@@ -46,7 +54,7 @@ static uintptr_t get_memory_end(void)
 static block_head_t* init_free_blocks_list(void) {
 
     // Write head
-    block_head_t *p_first_block_head = kernel_get_image_end();
+    block_head_t *p_first_block_head = (block_head_t *) kernel_get_image_end();
     p_first_block_head->is_free = true;
     p_first_block_head->size = (get_memory_end() - kernel_get_image_end()) - get_block_head_tail_size();
 
@@ -87,15 +95,6 @@ static size_t align(size_t size_to_alloc) {
 }
 
 /**
- * Get the total metadata size for a memory block
- *
- * @return Total size of the block header and tail.
- */
-static size_t get_block_head_tail_size() {
-    return sizeof(block_head_t) + sizeof(block_tail_t);
-}
-
-/**
  * Checks if a requested allocation size fits into a free block, considering the
  * necessary overhead for block headers and tails.
  * 
@@ -119,7 +118,7 @@ static bool fits_to_free_block(size_t size_to_fit, size_t free_size) {
 static block_head_t* first_fit(size_t size_to_alloc) {
     list_foreach(heap_header.free_blocks, block_head_t, link, block) {
         if (block->is_free && (fits_to_free_block(size_to_alloc, block->size))) {
-            return &block;
+            return block;
         }
     }
 
@@ -218,6 +217,7 @@ void* kmalloc(size_t size) {
 static block_head_t* coalesce_left(block_head_t* freed_block) {
     // TODO *
     // Get to prev block through its tail
+    return NULL;
 }
 
 /**
