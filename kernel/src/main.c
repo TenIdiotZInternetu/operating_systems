@@ -7,6 +7,7 @@
 #include <ktest.h>
 #include <lib/print.h>
 #include <main.h>
+#include <mm/frame.h>
 #include <mm/heap.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
@@ -38,6 +39,7 @@ static void* init_thread(void* ignored) {
  * function runs on special stack and does not represent a real thread (yet).
  */
 void kernel_main(void) {
+    frame_init();
     heap_init();
     scheduler_init();
     threads_init();

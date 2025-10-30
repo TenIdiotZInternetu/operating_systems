@@ -1,0 +1,6 @@
+# Base frame allocator tests (required)
+kernel frame/basic
+kernel frame/exhaust:m1024
+kernel frame/exhaust:m4096
+kernel frame/stress:m1024
+kernel frame/stress:m4096

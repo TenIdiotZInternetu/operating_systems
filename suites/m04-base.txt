@@ -1,0 +1,4 @@
+# Internal tests (required)
+kernel adt/bitmap1
+kernel adt/bitmap2
+kernel adt/bitmap3

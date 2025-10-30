@@ -4,10 +4,12 @@
 #include <adt/align.h>
 #include <ktest.h>
 #include <ktest/leak.h>
+#include <mm/frame.h>
 #include <mm/heap.h>
 
 #define MAX_RECORDED_OBJECTS 1024
 #define STATIC_HEAP_SIZE (1024 * 128)
+#define STATIC_FRAMES_COUNT 128
 
 #define log_info(fmt, ...) printk("[leak-test  INFO] " fmt "\n", ##__VA_ARGS__)
 
@@ -29,6 +31,8 @@ typedef struct {
     size_t first_free_index;
 } allocated_objects_t;
 
+typedef uint8_t dummy_frame_t[FRAME_SIZE] __attribute__((aligned(FRAME_SIZE)));
+
 #define LEAK_CHECK_STATUS_NONE 0
 #define LEAK_CHECK_STATUS_COLLECTING 1
 #define LEAK_CHECK_STATUS_INJECTING 2
@@ -42,6 +46,10 @@ static size_t allocation_collection_phase_counter = 0;
 static uint8_t heap[STATIC_HEAP_SIZE];
 static size_t heap_first_free_index = 0;
 static allocated_objects_t heap_objects;
+
+static dummy_frame_t frames[STATIC_FRAMES_COUNT];
+static size_t frames_first_free_index = 0;
+static allocated_objects_t frame_objects;
 
 static void allocated_objects_clear_unsafe(allocated_objects_t* objects) {
     objects->first_free_index = 0;
@@ -136,6 +144,55 @@ void kfree(void* ptr) {
     kfree_unsafe((uintptr_t)ptr);
 }
 
+void frame_init(void) {
+    allocated_objects_clear_unsafe(&frame_objects);
+}
+
+static inline uintptr_t va2pa(uintptr_t pa) {
+    return pa;
+}
+
+static errno_t frame_alloc_unsafe(size_t count, uintptr_t* phys, uintptr_t caller_addr) {
+    if (should_inject_oom_unsafe()) {
+        log_debug("Injecting NULL (requested %u frames, caller 0x%x)", count, caller_addr);
+        return ENOMEM;
+    }
+
+    // Actually try to allocate memory if possible
+    size_t next_first_free = frames_first_free_index + count;
+    if (next_first_free >= STATIC_FRAMES_COUNT) {
+        panic("Not enough memory for the test.");
+        return ENOMEM;
+    }
+    *phys = va2pa((uintptr_t)&frames[frames_first_free_index]);
+    frames_first_free_index = next_first_free;
+
+    // Handle leak checking accounting
+    on_object_allocation_unsafe(&frame_objects, *phys);
+
+    return EOK;
+}
+
+errno_t frame_alloc(size_t count, uintptr_t* phys) {
+    uintptr_t caller = GET_CALLER_ADDRESS();
+    errno_t result = frame_alloc_unsafe(count, phys, caller);
+
+    return result;
+}
+
+static void frame_free_unsafe(size_t count, uintptr_t phys) {
+    if (leak_checking_status != LEAK_CHECK_STATUS_INJECTING) {
+        return;
+    }
+    allocated_objects_release_unsafe(&frame_objects, phys);
+}
+
+errno_t frame_free(size_t count, uintptr_t phys) {
+    frame_free_unsafe(count, phys);
+
+    return EOK;
+}
+
 void ktest_leak_check(leak_checking_func_t func, void* data) {
     log_info("Test initializing (will record all allocations).");
 
@@ -147,11 +204,13 @@ void ktest_leak_check(leak_checking_func_t func, void* data) {
     size_t check_loops = allocation_collection_phase_counter + 1;
     for (loop_index = 0; loop_index < check_loops; loop_index++) {
         allocated_objects_clear_unsafe(&heap_objects);
+        allocated_objects_clear_unsafe(&frame_objects);
         allocation_counter = 0;
         log_info("Starting test loop %u (of %u)", loop_index + 1, check_loops);
         func(data);
         log_debug("Checking for leaks.");
         allocated_objects_check_all_released_unsafe(&heap_objects);
+        allocated_objects_check_all_released_unsafe(&frame_objects);
     }
     log_info("Test done, no leak found.");
 }
