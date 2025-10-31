@@ -4,6 +4,7 @@
 #ifndef _PROC_THREAD_H
 #define _PROC_THREAD_H
 
+#include <adt/list.h>
 #include <errno.h>
 #include <types.h>
 
@@ -33,8 +34,12 @@ typedef enum {
 struct thread {
     char name[THREAD_NAME_MAX_LENGTH + 1];
     thread_entry_func_t entry_func;
+    context_t context;
     thread_state_t state;
     void* stack_location;
+    void* return_value;
+    thread_t* joined_by_thread;
+    link_t link;
 };
 
 void threads_init(void);
