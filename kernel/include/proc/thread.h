@@ -23,9 +23,18 @@ typedef void* (*thread_entry_func_t)(void*);
 /** Information about any existing thread. */
 typedef struct thread thread_t;
 
+typedef enum {
+    READY,
+    SUSPENDED,
+    FINISHED,
+    KILLED
+} thread_state_t;
+
 struct thread {
     char name[THREAD_NAME_MAX_LENGTH + 1];
     thread_entry_func_t entry_func;
+    thread_state_t state;
+    void* stack_location;
 };
 
 void threads_init(void);
