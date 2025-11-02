@@ -110,15 +110,6 @@ void heap_init(void) {
     heap_header.free_size = heap_header.max_size;
 }
 
-static size_t align(size_t size_to_alloc) {
-    if (size_to_alloc % MIN_BLOCK_SIZE == 0) {
-        return size_to_alloc;
-    } else {
-        size_t blocks_to_alloc = (size_to_alloc / MIN_BLOCK_SIZE);
-        return MIN_BLOCK_SIZE * (blocks_to_alloc + 1);
-    }
-}
-
 /**
  * Iterates through heap's free blocks, returns first that fits
  *
@@ -217,8 +208,8 @@ void* kmalloc(size_t size) {
  * @param right_block Pointer to the head of the block we will merge into the left block
  */
 static void coalesce(block_head_t* left_block, block_head_t* right_block) {
-    left_block->size += align(sizeof(block_tail_t)) + align(sizeof(block_head_t)) + right_block->size;
-    block_tail_t* right_tail = (block_tail_t*)((uint8_t*)right_block + align(sizeof(block_head_t)) + right_block->size);
+    left_block->size += BLOCK_OVERHEAD + right_block->size;
+    block_tail_t* right_tail = (block_tail_t*)((uint8_t*)right_block + ALIGNED_HEAD_SIZE + right_block->size);
     *right_tail = left_block;
 }
 
@@ -231,7 +222,7 @@ static void coalesce(block_head_t* left_block, block_head_t* right_block) {
  */
 static block_head_t* coalesce_left(block_head_t* freed_block) {
     // Get to prev block through its tail
-    block_tail_t* prev_tail = (block_tail_t*)((uint8_t*)freed_block - align(sizeof(block_tail_t)));
+    block_tail_t* prev_tail = (block_tail_t*)((uint8_t*)freed_block - ALIGNED_TAIL_SIZE);
     block_head_t* prev_head = *prev_tail;
 
     if (prev_head->is_free) {
@@ -250,8 +241,8 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
  */
 static void coalesce_right(block_head_t* freed_block) {
     // Get to next block by adding the address and size of the freed block
-    block_tail_t* next_tail = (block_tail_t*)((uint8_t*)freed_block + align(sizeof(block_head_t)) + freed_block->size);
-    block_head_t* next_head = (block_head_t*)((uint8_t*)next_tail + align(sizeof(block_tail_t)));
+    block_tail_t* next_tail = (block_tail_t*)((uint8_t*)freed_block + ALIGNED_HEAD_SIZE + freed_block->size);
+    block_head_t* next_head = (block_head_t*)((uint8_t*)next_tail + ALIGNED_TAIL_SIZE);
 
     if (next_head->is_free) {
         coalesce(freed_block, next_head);
@@ -280,7 +271,7 @@ static void insert_freed_block(block_head_t* freed_block) {
  * @param ptr Pointer to memory to be freed.
  */
 void kfree(void* ptr) {
-    block_head_t* freed_block_head = (block_head_t*)((uint8_t*)ptr - align(sizeof(block_head_t)));
+    block_head_t* freed_block_head = (block_head_t*)((uint8_t*)ptr - ALIGNED_HEAD_SIZE);
     freed_block_head->is_free = true;
     block_head_t* new_head = freed_block_head;
 
@@ -288,9 +279,13 @@ void kfree(void* ptr) {
     if (!is_first_block) {
         new_head = coalesce_left(freed_block_head);
     }
-
     bool coalesced_left = new_head == freed_block_head;
-    coalesce_right(new_head);
+
+    bool is_last_block = (uintptr_t)((uint8_t*)new_head + BLOCK_OVERHEAD + new_head->size) == heap_header.end_address;
+    if (!is_last_block) {
+        coalesce_right(new_head);
+    }
+
     if (!coalesced_left) {
         insert_freed_block(new_head);
     }
