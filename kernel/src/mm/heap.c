@@ -160,7 +160,8 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
  */
 static void coalesce_right(block_head_t* freed_block) {
     // Get to next block by adding the address and size of the freed block
-    block_head_t* next_head = (block_head_t*)((uint8_t*)freed_block + align(sizeof(block_head_t)) + freed_block->size + align(sizeof(block_tail_t)));
+    block_tail_t* next_tail = (block_tail_t*)((uint8_t*)freed_block + align(sizeof(block_head_t)) + freed_block->size);
+    block_head_t* next_head = (block_head_t*)((uint8_t*)next_tail + align(sizeof(block_tail_t)));
 
     if (next_head->is_free) {
         coalesce(freed_block, next_head);
@@ -191,8 +192,13 @@ static void insert_freed_block(block_head_t* freed_block) {
 void kfree(void* ptr) {
     block_head_t* freed_block_head = (block_head_t*)((uint8_t*)ptr - align(sizeof(block_head_t)));
     freed_block_head->is_free = true;
+    block_head_t* new_head = freed_block_head;
 
-    block_head_t* new_head = coalesce_left(freed_block_head);
+    bool is_first_block = (uintptr_t)freed_block_head == heap_header.start_address;
+    if (!is_first_block) {
+        new_head = coalesce_left(freed_block_head);
+    }
+
     bool coalesced_left = new_head == freed_block_head;
     coalesce_right(new_head);
     if (!coalesced_left) {
