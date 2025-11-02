@@ -86,7 +86,7 @@ static block_head_t* _create_free_block(uintptr_t header_address, size_t size) {
 static block_head_t* init_free_blocks_list(void) {
     list_init(&heap_header.free_blocks);
 
-    uintptr_t first_free_block_address = (uintptr_t)((block_head_t*)kernel_get_image_end());
+    uintptr_t first_free_block_address = kernel_get_image_end();
 
     size_t first_free_block_size = (get_memory_end() - kernel_get_image_end()) - BLOCK_OVERHEAD;
 
@@ -140,7 +140,7 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
     link_t* p_next_free_block_link = free_block_head->link.next;
     list_remove(&free_block_head->link);
 
-    size_t used_block_total_size = ALIGNED_HEAD_SIZE + size_to_alloc + ALIGNED_TAIL_SIZE;
+    size_t used_block_total_size = size_to_alloc + BLOCK_OVERHEAD;
     size_t remaining_space = original_free_size + BLOCK_OVERHEAD - used_block_total_size;
 
     free_block_head->is_free = false;
