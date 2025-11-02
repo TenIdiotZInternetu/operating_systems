@@ -110,7 +110,6 @@ void heap_init(void) {
     heap_header.free_size = heap_header.max_size;
 }
 
-
 /**
  * Iterates through heap's free blocks, returns first that fits
  *
@@ -160,7 +159,7 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
 
     uintptr_t new_free_block_address = used_block_tail_address + ALIGNED_TAIL_SIZE;
     size_t new_free_block_data_size = remaining_space - BLOCK_OVERHEAD;
-    
+
     block_head_t* p_free_block_head = _create_free_block(new_free_block_address, new_free_block_data_size);
 
     list_insert_before(&heap_header.free_blocks, p_next_free_block_link, &p_free_block_head->link);
@@ -199,8 +198,6 @@ void* kmalloc(size_t size) {
 
     return alloc_ptr;
 }
-
-
 
 /**
  * Checks if the block to the left is free. If yes the two blocks are merged
