@@ -127,7 +127,11 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
     size_t original_free_size = free_block_head->size;
 
     link_t* p_next_free_block_link = free_block_head->link.next;
+    bool is_same = p_next_free_block_link == &free_block_head->link;
+    printk("%p\n", p_next_free_block_link);
+    assert(!is_same);
     list_remove(&free_block_head->link);
+    
 
     size_t used_block_total_size = size_to_alloc + BLOCK_OVERHEAD;
     size_t remaining_space = original_free_size + BLOCK_OVERHEAD - used_block_total_size;
