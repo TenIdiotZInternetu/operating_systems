@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2019 Charles University
 
+#include "adt/list.h"
 #include <mm/heap.h>
 #include <mm/self.h>
 
@@ -9,6 +10,14 @@ static const uint64_t PROBE_TEST = 0xABABAB;
 static const uint8_t MIN_BLOCK_SIZE = 8;
 
 static heap_head_t heap_header;
+
+typedef struct {
+    bool is_free;
+    size_t size;
+    link_t link;
+} block_head_t;
+
+typedef block_head_t* block_tail_t;
 
 static uintptr_t get_memory_end() {
     uintptr_t start = kernel_get_image_end();
@@ -23,7 +32,15 @@ static uintptr_t get_memory_end() {
     return (uintptr_t)current - PROBE_STEP;
 }
 
-// tools/tester.py suite suites/m02-heap-base.txt
+/**
+ * Initializes the free_blocks list and inserts one free block
+ * of the size of entire memory minus size of the head and tail
+ *
+ * @return Pointer to the initialized free block
+ */
+static block_head_t* init_free_blocks_list(void) {
+    // TODO
+}
 
 /** Heap initialization.
  *
@@ -31,9 +48,10 @@ static uintptr_t get_memory_end() {
  */
 void heap_init(void) {
     heap_header.start_address = kernel_get_image_end();
-    heap_header.next_ptr = heap_header.start_address;
     heap_header.end_address = get_memory_end();
-    heap_header.max_size = heap_header.end_address - heap_header.start_address;
+    block_head_t* init_block = init_free_blocks_list();
+
+    heap_header.max_size = init_block->size;
     heap_header.free_size = heap_header.max_size;
 }
 
@@ -44,6 +62,28 @@ static size_t align(size_t size_to_alloc) {
         size_t blocks_to_alloc = (size_to_alloc / MIN_BLOCK_SIZE);
         return MIN_BLOCK_SIZE * (blocks_to_alloc + 1);
     }
+}
+
+/**
+ * Iterates through heap's free blocks, returns first that fits
+ *
+ * @param size_to_alloc size of allocated data
+ * @return Pointer to first free block head
+ * @retval NULL No big enough block found
+ */
+static block_head_t* first_fit(size_t size_to_alloc) {
+    // TODO
+}
+
+/**
+ * Splits a free block into two, first used, second free.
+ * Used block is removed from the list of free blocks, free block is inserted.
+ *
+ * @param free_block Pointer to free block to split
+ * @param size_to_alloc Size of the created used block without head and tail
+ */
+static void split_block(block_head_t* free_block, size_t size_to_alloc) {
+    // TODO
 }
 
 /** Allocate size bytes on heap.
@@ -65,10 +105,76 @@ void* kmalloc(size_t size) {
         return NULL;
     }
 
-    void* alloc_ptr = (void*)heap_header.next_ptr;
-    heap_header.next_ptr += space_to_alloc;
-    heap_header.free_size -= space_to_alloc;
+    block_head_t* found_block = first_fit(space_to_alloc);
+
+    if (found_block == NULL) {
+        return NULL;
+    }
+
+    split_block(found_block, size);
+
+    // Return first address after head
+    void* alloc_ptr = (void*)(found_block + 1);
     return alloc_ptr;
+}
+
+/**
+ *
+ * Changes the head of the left block and the tail of the right block,
+ * so that the right block is merged into the left
+ *
+ * @param left_block Pointer to the head of the block we are merging into
+ * @param right_block Pointer to the head of the block we will merge into the left block
+ */
+static void coalesce(block_head_t* left_block, block_head_t* right_block) {
+    left_block->size += align(sizeof(block_tail_t)) + align(sizeof(block_head_t)) + right_block->size;
+    block_tail_t* right_tail = (block_tail_t*)((uint8_t*)right_block + align(sizeof(block_head_t)) + right_block->size);
+    *right_tail = left_block;
+}
+
+/**
+ * Checks if the block to the left is free. If yes the two blocks are merged
+ * into one free block. If not, the pass block is returned.
+ *
+ * @param used_block Block to be coalesced
+ * @return Pointer to the resulting free block
+ */
+static block_head_t* coalesce_left(block_head_t* freed_block) {
+    // Get to prev block through its tail
+    block_tail_t* prev_tail = (block_tail_t*)((uint8_t*)freed_block - align(sizeof(block_tail_t)));
+    block_head_t* prev_head = *prev_tail;
+
+    if (prev_head->is_free) {
+        coalesce(prev_head, freed_block);
+        return prev_head;
+    } else {
+        return freed_block;
+    }
+}
+
+/**
+ * Checks if the block to the right is free. If yes the two blocks are merged
+ * into one free block.
+ *
+ * @param used_block Block to be coalesced
+ */
+static void coalesce_right(block_head_t* freed_block) {
+    // Get to next block by adding the address and size of the freed block
+    block_head_t* next_head = (block_head_t*)((uint8_t*)freed_block + align(sizeof(block_head_t)) + freed_block->size + align(sizeof(block_tail_t)));
+
+    if (next_head->is_free) {
+        coalesce(freed_block, next_head);
+        list_remove(&next_head->link);
+    }
+}
+
+/**
+ * Inserts freed block back to the free_blocks list
+ *
+ * @param freed_block Block to insert
+ */
+static void insert_freed_block(block_head_t* freed_block) {
+    list_prepend(&heap_header.free_blocks, &freed_block->link);
 }
 
 /** Free memory previously allocated by kmalloc.
@@ -83,6 +189,15 @@ void* kmalloc(size_t size) {
  * @param ptr Pointer to memory to be freed.
  */
 void kfree(void* ptr) {
+    block_head_t* freed_block_head = (block_head_t*)((uint8_t*)ptr - align(sizeof(block_head_t)));
+    freed_block_head->is_free = true;
+
+    block_head_t* new_head = coalesce_left(freed_block_head);
+    bool coalesced_left = new_head == freed_block_head;
+    coalesce_right(new_head);
+    if (!coalesced_left) {
+        insert_freed_block(new_head);
+    }
 }
 
 heap_head_t get_heap_info() {

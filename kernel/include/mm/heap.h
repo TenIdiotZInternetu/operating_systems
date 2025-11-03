@@ -4,6 +4,7 @@
 #ifndef _MM_HEAP_H
 #define _MM_HEAP_H
 
+#include "adt/list.h"
 #include <types.h>
 
 typedef struct {
@@ -11,7 +12,7 @@ typedef struct {
     size_t max_size;
     uintptr_t start_address;
     uintptr_t end_address;
-    uintptr_t next_ptr;
+    list_t free_blocks;
 } heap_head_t;
 
 void heap_init(void);
