@@ -11,14 +11,6 @@ static const uint8_t MIN_BLOCK_SIZE = 8;
 
 static heap_head_t heap_header;
 
-typedef struct {
-    bool is_free;
-    size_t size;
-    link_t link;
-} block_head_t;
-
-typedef block_head_t* block_tail_t;
-
 #define ALIGNED_HEAD_SIZE align(sizeof(block_head_t))
 #define ALIGNED_TAIL_SIZE align(sizeof(block_tail_t))
 
@@ -87,11 +79,8 @@ static block_head_t* init_free_blocks_list(void) {
     list_init(&heap_header.free_blocks);
 
     uintptr_t first_free_block_address = kernel_get_image_end();
-
     size_t first_free_block_size = (get_memory_end() - kernel_get_image_end()) - BLOCK_OVERHEAD;
-
     block_head_t* p_first_block_head = _create_free_block(first_free_block_address, first_free_block_size);
-
     list_append(&heap_header.free_blocks, &p_first_block_head->link);
 
     return p_first_block_head;
@@ -193,9 +182,7 @@ void* kmalloc(size_t size) {
     }
 
     split_block(found_block, space_to_alloc);
-
     void* alloc_ptr = (void*)((uint8_t*)found_block + ALIGNED_HEAD_SIZE);
-
     return alloc_ptr;
 }
 
@@ -289,8 +276,39 @@ void kfree(void* ptr) {
     if (!coalesced_left) {
         insert_freed_block(new_head);
     }
+
+    print_heap();
 }
 
 heap_head_t get_heap_info() {
     return heap_header;
+}
+
+void print_heap() {
+    printk("\
+{ HEAP:\n \
+    used: %u/%u,\n \
+    free: %u,\n \
+    range: %p-%p\n",
+            heap_header.max_size - heap_header.free_size,
+            heap_header.max_size,
+            heap_header.free_size,
+            heap_header.start_address,
+            heap_header.end_address);
+
+    printk("\n  BLOCKS:\n");
+
+    uintptr_t block_address = heap_header.start_address;
+    while (block_address < heap_header.end_address) {
+        printk("    %pA\n", block_address + ALIGNED_HEAD_SIZE);
+        size_t block_size = ((block_head_t*)block_address)->size;
+        block_address += block_size + BLOCK_OVERHEAD;
+    }
+
+    printk("\n  FREE BLOCKS LIST:\n");
+    list_foreach(heap_header.free_blocks, block_head_t, link, it) {
+        printk("    %pA\n", (uintptr_t)it + ALIGNED_HEAD_SIZE);
+    }
+
+    printk("}\n");
 }
