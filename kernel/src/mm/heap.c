@@ -127,11 +127,7 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
     size_t original_free_size = free_block_head->size;
 
     link_t* p_next_free_block_link = free_block_head->link.next;
-    bool is_same = p_next_free_block_link == &free_block_head->link;
-    printk("%p\n", p_next_free_block_link);
-    assert(!is_same);
     list_remove(&free_block_head->link);
-    
 
     size_t used_block_total_size = size_to_alloc + BLOCK_OVERHEAD;
     size_t remaining_space = original_free_size + BLOCK_OVERHEAD - used_block_total_size;
@@ -140,7 +136,7 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
 
     // If remainder is too small to create a new free block, allocate the entire block to avoid fragmentation
     if (remaining_space < BLOCK_OVERHEAD + MIN_BLOCK_SIZE) {
-        heap_header.free_size -= (original_free_size + BLOCK_OVERHEAD);
+        heap_header.free_size -= original_free_size;
         return;
     }
 
@@ -202,6 +198,7 @@ static void coalesce(block_head_t* left_block, block_head_t* right_block) {
     left_block->size += BLOCK_OVERHEAD + right_block->size;
     block_tail_t* right_tail = (block_tail_t*)((uint8_t*)right_block + ALIGNED_HEAD_SIZE + right_block->size);
     *right_tail = left_block;
+    heap_header.free_size += BLOCK_OVERHEAD;
 }
 
 /**
@@ -232,8 +229,7 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
  */
 static void coalesce_right(block_head_t* freed_block) {
     // Get to next block by adding the address and size of the freed block
-    block_tail_t* next_tail = (block_tail_t*)((uint8_t*)freed_block + ALIGNED_HEAD_SIZE + freed_block->size);
-    block_head_t* next_head = (block_head_t*)((uint8_t*)next_tail + ALIGNED_TAIL_SIZE);
+    block_head_t* next_head = (block_head_t*)((uint8_t*)freed_block + BLOCK_OVERHEAD + freed_block->size);
 
     if (next_head->is_free) {
         coalesce(freed_block, next_head);
@@ -264,13 +260,14 @@ static void insert_freed_block(block_head_t* freed_block) {
 void kfree(void* ptr) {
     block_head_t* freed_block_head = (block_head_t*)((uint8_t*)ptr - ALIGNED_HEAD_SIZE);
     freed_block_head->is_free = true;
+    heap_header.free_size += freed_block_head->size;
     block_head_t* new_head = freed_block_head;
 
     bool is_first_block = (uintptr_t)freed_block_head == heap_header.start_address;
     if (!is_first_block) {
         new_head = coalesce_left(freed_block_head);
     }
-    bool coalesced_left = new_head == freed_block_head;
+    bool coalesced_left = new_head != freed_block_head;
 
     bool is_last_block = (uintptr_t)((uint8_t*)new_head + BLOCK_OVERHEAD + new_head->size) == heap_header.end_address;
     if (!is_last_block) {
@@ -280,8 +277,6 @@ void kfree(void* ptr) {
     if (!coalesced_left) {
         insert_freed_block(new_head);
     }
-
-    print_heap();
 }
 
 heap_head_t get_heap_info() {
