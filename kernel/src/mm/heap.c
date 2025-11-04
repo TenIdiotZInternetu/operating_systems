@@ -147,7 +147,7 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
 
     // If remainder is too small to create a new free block, allocate the entire block to avoid fragmentation
     if (remaining_space < BLOCK_OVERHEAD + MIN_BLOCK_SIZE) {
-        heap_header.free_size -= (original_free_size + BLOCK_OVERHEAD);
+        heap_header.free_size -= original_free_size;
         return;
     }
 
