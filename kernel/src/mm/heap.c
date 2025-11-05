@@ -11,14 +11,6 @@ static const uint8_t MIN_BLOCK_SIZE = 8;
 
 static heap_head_t heap_header;
 
-typedef struct {
-    bool is_free;
-    size_t size;
-    link_t link;
-} block_head_t;
-
-typedef block_head_t* block_tail_t;
-
 #define ALIGNED_HEAD_SIZE align(sizeof(block_head_t))
 #define ALIGNED_TAIL_SIZE align(sizeof(block_tail_t))
 
@@ -87,11 +79,8 @@ static block_head_t* init_free_blocks_list(void) {
     list_init(&heap_header.free_blocks);
 
     uintptr_t first_free_block_address = kernel_get_image_end();
-
     size_t first_free_block_size = (get_memory_end() - kernel_get_image_end()) - BLOCK_OVERHEAD;
-
     block_head_t* p_first_block_head = _create_free_block(first_free_block_address, first_free_block_size);
-
     list_append(&heap_header.free_blocks, &p_first_block_head->link);
 
     return p_first_block_head;
@@ -193,10 +182,23 @@ void* kmalloc(size_t size) {
     }
 
     split_block(found_block, space_to_alloc);
-
     void* alloc_ptr = (void*)((uint8_t*)found_block + ALIGNED_HEAD_SIZE);
-
     return alloc_ptr;
+}
+
+/**
+ *
+ * Changes the head of the left block and the tail of the right block,
+ * so that the right block is merged into the left
+ *
+ * @param left_block Pointer to the head of the block we are merging into
+ * @param right_block Pointer to the head of the block we will merge into the left block
+ */
+static void coalesce(block_head_t* left_block, block_head_t* right_block) {
+    left_block->size += BLOCK_OVERHEAD + right_block->size;
+    block_tail_t* right_tail = (block_tail_t*)((uint8_t*)right_block + ALIGNED_HEAD_SIZE + right_block->size);
+    *right_tail = left_block;
+    heap_header.free_size += BLOCK_OVERHEAD;
 }
 
 /**
@@ -207,9 +209,16 @@ void* kmalloc(size_t size) {
  * @return Pointer to the resulting free block
  */
 static block_head_t* coalesce_left(block_head_t* freed_block) {
-    // TODO *
     // Get to prev block through its tail
-    return NULL;
+    block_tail_t* prev_tail = (block_tail_t*)((uint8_t*)freed_block - ALIGNED_TAIL_SIZE);
+    block_head_t* prev_head = *prev_tail;
+
+    if (prev_head->is_free) {
+        coalesce(prev_head, freed_block);
+        return prev_head;
+    } else {
+        return freed_block;
+    }
 }
 
 /**
@@ -219,8 +228,13 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
  * @param used_block Block to be coalesced
  */
 static void coalesce_right(block_head_t* freed_block) {
-    // TODO *
     // Get to next block by adding the address and size of the freed block
+    block_head_t* next_head = (block_head_t*)((uint8_t*)freed_block + BLOCK_OVERHEAD + freed_block->size);
+
+    if (next_head->is_free) {
+        coalesce(freed_block, next_head);
+        list_remove(&next_head->link);
+    }
 }
 
 /**
@@ -229,7 +243,7 @@ static void coalesce_right(block_head_t* freed_block) {
  * @param freed_block Block to insert
  */
 static void insert_freed_block(block_head_t* freed_block) {
-    // TODO *
+    list_prepend(&heap_header.free_blocks, &freed_block->link);
 }
 
 /** Free memory previously allocated by kmalloc.
@@ -244,14 +258,56 @@ static void insert_freed_block(block_head_t* freed_block) {
  * @param ptr Pointer to memory to be freed.
  */
 void kfree(void* ptr) {
-    block_head_t* freed_block = (block_head_t*)ptr - 1;
-    freed_block->is_free = true;
+    block_head_t* freed_block_head = (block_head_t*)((uint8_t*)ptr - ALIGNED_HEAD_SIZE);
+    freed_block_head->is_free = true;
+    heap_header.free_size += freed_block_head->size;
+    block_head_t* new_head = freed_block_head;
 
-    freed_block = coalesce_left(freed_block);
-    coalesce_right(freed_block);
-    insert_freed_block(freed_block);
+    bool is_first_block = (uintptr_t)freed_block_head == heap_header.start_address;
+    if (!is_first_block) {
+        new_head = coalesce_left(freed_block_head);
+    }
+    bool coalesced_left = new_head != freed_block_head;
+
+    bool is_last_block = (uintptr_t)((uint8_t*)new_head + BLOCK_OVERHEAD + new_head->size) == heap_header.end_address;
+    if (!is_last_block) {
+        coalesce_right(new_head);
+    }
+
+    if (!coalesced_left) {
+        insert_freed_block(new_head);
+    }
 }
 
 heap_head_t get_heap_info() {
     return heap_header;
+}
+
+void print_heap() {
+    printk("\
+{ HEAP:\n \
+    used: %u/%u,\n \
+    free: %u,\n \
+    range: %p-%p\n",
+            heap_header.max_size - heap_header.free_size,
+            heap_header.max_size,
+            heap_header.free_size,
+            heap_header.start_address,
+            heap_header.end_address);
+
+    printk("\n  BLOCKS:\n");
+
+    uintptr_t block_address = heap_header.start_address;
+    while (block_address < heap_header.end_address) {
+        printk("    %pA\n", block_address + ALIGNED_HEAD_SIZE);
+        size_t block_size = ((block_head_t*)block_address)->size;
+        block_address += block_size + BLOCK_OVERHEAD;
+    }
+
+    printk("\n  FREE BLOCKS LIST:\n");
+    list_foreach(heap_header.free_blocks, block_head_t, link, it) {
+        printk("    %pA\n", (uintptr_t)it + ALIGNED_HEAD_SIZE);
+    }
+
+    printk("}\n");
 }
