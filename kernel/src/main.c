@@ -37,4 +37,3 @@ void kernel_main(void) {
     printer_putchar('\n');
 #endif
 }
-
