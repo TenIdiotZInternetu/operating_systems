@@ -157,22 +157,12 @@ void print_list(list_t* list) {
     printk("]");
 }
 
-static void print_heap(void* ptr) {
-    heap_head_t heap = get_heap_info();
-    printk("\
-(%p)[\n \
-    used: %u/%u,\n \
-    free: %u,\n \
-    range: %p-%p\n \
-    first free: %p\n \
-]\n",
+static void print_heap_block(void* ptr) {
+    block_head_t* block_head = (block_head_t*)ptr - 1;
+    printk("(%p)[%c][size: %u]",
             ptr,
-            heap.max_size - heap.free_size,
-            heap.max_size,
-            heap.free_size,
-            heap.start_address,
-            heap.end_address,
-            heap.next_ptr);
+            block_head->is_free ? ' ' : 'X',
+            block_head->size);
 }
 
 void resolve_specifier(const char** format_it, va_list* args) {
@@ -201,7 +191,7 @@ void resolve_specifier(const char** format_it, va_list* args) {
             print_pointer(va_arg(*args, void*));
             return;
         } else if (next_c == SPECIFIER_FOLLOWUP_HEAP) {
-            print_heap(va_arg(*args, void*));
+            print_heap_block(va_arg(*args, void*));
         } else if (next_c == SPECIFIER_FOLLOWUP_LIST) {
             print_list(va_arg(*args, list_t*));
         } else if (next_c == SPECIFIER_FOLLOWUP_FUNC) {
