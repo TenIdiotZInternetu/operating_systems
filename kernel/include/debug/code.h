@@ -9,7 +9,9 @@
 /** Get current value of stack pointer. */
 static inline uintptr_t debug_get_stack_pointer(void) {
     register uintptr_t stack_ptr;
-    __asm__("mv %0, sp" : "=r"(stack_ptr) :);
+    __asm__("mv %0, sp"
+            : "=r"(stack_ptr)
+            :);
     return stack_ptr;
 }
 
