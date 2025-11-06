@@ -208,7 +208,7 @@ void thread_switch_to(thread_t* thread) {
     context_t* cur_context;
     context_t dummy_context;
 
-    if (thread_get_current() != NULL) {
+    if (thread_get_current() == NULL) {
         cur_context = &dummy_context;
     } else {
         cur_context = &thread_get_current()->context;
