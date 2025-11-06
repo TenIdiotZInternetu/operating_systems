@@ -21,6 +21,7 @@ static bool scheduler_is_init() {
  */
 void scheduler_init(void) {
     list_init(&scheduler.ready_threads);
+    scheduler.current_thread = NULL;
 }
 
 thread_t* scheduler_get_current_thread(void) {
