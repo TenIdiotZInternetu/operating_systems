@@ -60,10 +60,9 @@ void scheduler_schedule_next(void) {
     /**
      * TODO: Call thread_switch_context(current_thread)
      *
-     * Before that, change the current_thread to the next thread in the list.
-     * Careful about the list head.
-     *
      * You need to get the context of the switched-from thread into the function.
      * Feel free to add fields to scheduler_t, and adjust the implementation of thread_switch_context()
+     *
+     * It should be safe to change current_thread value after the context switch.
      */
 }

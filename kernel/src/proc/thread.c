@@ -48,15 +48,15 @@ static void thread_init_stack(thread_t* thread, void* data) {
 errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
     // TODO check if theres enough space for malloc
 
-    thread_t* thread = kmalloc(sizeof(thread));
-    thread->stack_location = kmalloc(THREAD_STACK_SIZE);
-    thread_init_stack(thread, data);
+    thread_t* p_thread = kmalloc(sizeof(p_thread));
+    p_thread->stack_location = kmalloc(THREAD_STACK_SIZE);
+    thread_init_stack(p_thread, data);
 
     // TODO loop over name to fill thread->name
 
-    list_append(&threads, &thread->link);
-    *thread_out = thread;
-    thread->context.ra = (unative_t)entry;
+    list_append(&threads, &p_thread->link);
+    *thread_out = p_thread;
+    p_thread->context.ra = (unative_t)entry;
     return EOK;
 }
 
