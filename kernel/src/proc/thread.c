@@ -55,7 +55,7 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     // TODO loop over name to fill thread->name
 
     list_append(&threads, &thread->link);
-    thread_out = &thread;
+    *thread_out = thread;
     thread->context.ra = (unative_t)entry;
     return EOK;
 }
@@ -190,7 +190,7 @@ errno_t thread_join(thread_t* thread, void** retval) {
     }
 
     // TODO Return value from the root of the stack if the entry function finished
-    retval = &thread->return_value;
+    *retval = &thread->return_value;
     list_remove(&thread->link);
     kfree(thread->stack_location);
     kfree(thread);
