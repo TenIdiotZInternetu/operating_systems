@@ -17,6 +17,11 @@ void threads_init(void) {
     list_init(&threads);
 }
 
+static uintptr_t align_stack_ptr(uintptr_t stack_ptr_unaligned) {
+    uintptr_t aligned = stack_ptr_unaligned - (stack_ptr_unaligned % ABI_STACK_ALIGNMENT);
+    return aligned;
+}
+
 /**
  * Sets the stack pointer in the thread's context and puts
  * the input arguments on the stack according to ABI:
@@ -25,7 +30,9 @@ void threads_init(void) {
  * 3. The first argument passed on the stack is located at offset 0
  */
 static void thread_init_stack(thread_t* thread, void* data) {
-    // TODO
+    uintptr_t stack_ptr_unaligned = (uintptr_t)thread->stack_location + THREAD_STACK_SIZE;
+    uintptr_t stack_ptr = align_stack_ptr(stack_ptr_unaligned);
+    thread->context.sp = stack_ptr;
 }
 
 /** Create a new thread.
@@ -51,6 +58,7 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     thread_t* p_thread = kmalloc(sizeof(p_thread));
     p_thread->stack_location = kmalloc(THREAD_STACK_SIZE);
     thread_init_stack(p_thread, data);
+    p_thread->first_arg = data;
 
     // TODO loop over name to fill thread->name
 
