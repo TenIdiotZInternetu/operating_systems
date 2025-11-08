@@ -27,12 +27,23 @@ static uintptr_t align_stack_ptr(uintptr_t stack_ptr_unaligned) {
  * the input arguments on the stack according to ABI:
  * 1. Stack grows to lower addresses => SP starts at the end of the allocated block
  * 2. SP must be aligned to 128-bit boundary
- * 3. The first argument passed on the stack is located at offset 0
  */
-static void thread_init_stack(thread_t* thread, void* data) {
+static void thread_init_stack(thread_t* thread) {
     uintptr_t stack_ptr_unaligned = (uintptr_t)thread->stack_location + THREAD_STACK_SIZE;
     uintptr_t stack_ptr = align_stack_ptr(stack_ptr_unaligned);
     thread->context.sp = stack_ptr;
+}
+
+/** 
+ * Launches new thread and passes argument of entry_func 
+ * to a0. After entry_func finishes, this function saves
+ * the return value and calls thread_finish
+ */
+static void thread_execute() {
+    thread_t* thread_to_execute = scheduler_get_thread_to_launch();
+    scheduler_set_current_thread(thread_to_execute);
+    void* retval = thread_to_execute->entry_func(thread_to_execute->first_arg);
+    thread_finish(retval);
 }
 
 /** Create a new thread.
@@ -57,14 +68,14 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
 
     thread_t* p_thread = kmalloc(sizeof(p_thread));
     p_thread->stack_location = kmalloc(THREAD_STACK_SIZE);
-    thread_init_stack(p_thread, data);
+    thread_init_stack(p_thread);
     p_thread->first_arg = data;
 
     // TODO loop over name to fill thread->name
 
     list_append(&threads, &p_thread->link);
     *thread_out = p_thread;
-    p_thread->context.ra = (unative_t)entry;
+    p_thread->context.ra = (unative_t)thread_execute;
     return EOK;
 }
 
@@ -197,7 +208,6 @@ errno_t thread_join(thread_t* thread, void** retval) {
         thread_yield();
     }
 
-    // TODO Return value from the root of the stack if the entry function finished
     *retval = &thread->return_value;
     list_remove(&thread->link);
     kfree(thread->stack_location);
