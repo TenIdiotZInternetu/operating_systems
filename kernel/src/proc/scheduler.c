@@ -33,7 +33,7 @@ void scheduler_set_current_thread(thread_t* thread_to_set) {
 }
 
 thread_t* scheduler_get_thread_to_launch(void) {
-    return scheduler.thread_to_launch;
+    return list_item(scheduler.ready_threads.head.next, thread_t, link);
 }
 
 /** Marks given thread as ready to be executed.
@@ -73,6 +73,6 @@ void scheduler_schedule_next(void) {
      *
      * It should be safe to change current_thread value after the context switch.
      * 
-     * Update thread_to_launch field before switching.
+     * Move the current thread to the end of the queue before switching.
      */
 }

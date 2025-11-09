@@ -9,7 +9,6 @@
 
 typedef struct {
     thread_t* current_thread;
-    thread_t* thread_to_launch;
     list_t ready_threads;
 } scheduler_t;
 

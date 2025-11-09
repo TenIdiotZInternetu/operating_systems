@@ -17,20 +17,16 @@ void threads_init(void) {
     list_init(&threads);
 }
 
-static uintptr_t align_stack_ptr(uintptr_t stack_ptr_unaligned) {
-    uintptr_t aligned = stack_ptr_unaligned - (stack_ptr_unaligned % ABI_STACK_ALIGNMENT);
-    return aligned;
-}
-
 /**
  * Sets the stack pointer in the thread's context and puts
  * the input arguments on the stack according to ABI:
  * 1. Stack grows to lower addresses => SP starts at the end of the allocated block
  * 2. SP must be aligned to 128-bit boundary
+ * @param thread Thread for which we are initializing the stack
  */
 static void thread_init_stack(thread_t* thread) {
     uintptr_t stack_ptr_unaligned = (uintptr_t)thread->stack_location + THREAD_STACK_SIZE;
-    uintptr_t stack_ptr = align_stack_ptr(stack_ptr_unaligned);
+    uintptr_t stack_ptr = stack_ptr_unaligned - (stack_ptr_unaligned % ABI_STACK_ALIGNMENT);
     thread->context.sp = stack_ptr;
 }
 
@@ -76,6 +72,7 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     list_append(&threads, &p_thread->link);
     *thread_out = p_thread;
     p_thread->context.ra = (unative_t)thread_execute;
+    scheduler_add_ready_thread(p_thread);
     return EOK;
 }
 
