@@ -84,16 +84,16 @@ void print_scheduler(void) {
     uint16_t idle_thread_count = 0;
 
     printk("{ SCHEDULER\n");
-    printk("    READY THREADS:\n\n");
+    printk("    READY THREADS:\n");
     list_foreach(scheduler.ready_threads, thread_t, link, it) {
-        printk("%pT", it);
+        printk("    %pT\n", it);
         ready_thread_count++;
     };
 
     printk("\n");
-    printk("    IDLE THREADS:\n\n");
+    printk("    IDLE THREADS:\n");
     list_foreach(scheduler.idle_threads, thread_t, link, it) {
-        printk("    %pT", it);
+        printk("    %pT\n", it);
         idle_thread_count++;
     }
 
