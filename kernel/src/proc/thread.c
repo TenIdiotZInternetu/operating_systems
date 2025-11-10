@@ -251,7 +251,6 @@ errno_t thread_kill(thread_t* thread) {
 }
 
 const char* thread_state_str(thread_t* thread) {
-    printk("%u\n", thread->state);
     switch (thread->state) {
     case READY:
         return "READY";

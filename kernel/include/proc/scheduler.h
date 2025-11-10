@@ -18,4 +18,6 @@ void scheduler_add_ready_thread(thread_t* id);
 void scheduler_remove_thread(thread_t* id);
 void scheduler_schedule_next(void);
 
+void print_scheduler(void);
+
 #endif

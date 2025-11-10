@@ -78,3 +78,27 @@ void scheduler_schedule_next(void) {
      * Move the current thread to the end of the queue before switching.
      */
 }
+
+void print_scheduler(void) {
+    uint16_t ready_thread_count = 0;
+    uint16_t idle_thread_count = 0;
+
+    printk("{ SCHEDULER\n");
+    printk("    READY THREADS:\n\n");
+    list_foreach(scheduler.ready_threads, thread_t, link, it) {
+        printk("%pT", it);
+        ready_thread_count++;
+    };
+
+    printk("\n");
+    printk("    IDLE THREADS:\n\n");
+    list_foreach(scheduler.idle_threads, thread_t, link, it) {
+        printk("    %pT", it);
+        idle_thread_count++;
+    }
+
+    printk("\n");
+    printk("    Thread count: %u/%u (ready/idle)\n", ready_thread_count, idle_thread_count);
+    printk("    Total count: %u\n", ready_thread_count + idle_thread_count);
+    printk("}\n");
+}
