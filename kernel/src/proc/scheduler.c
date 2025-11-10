@@ -21,23 +21,19 @@ static bool scheduler_is_init() {
  */
 void scheduler_init(void) {
     list_init(&scheduler.ready_threads);
-    scheduler.current_thread = NULL;
+    list_init(&scheduler.idle_threads);
 }
 
 thread_t* scheduler_get_current_thread(void) {
-    return scheduler.current_thread;
-}
-
-void scheduler_set_current_thread(thread_t* thread_to_set) {
-    scheduler.current_thread = thread_to_set;
-}
-
-thread_t* scheduler_get_thread_to_launch(void) {
+    assert(scheduler_is_init());
+    assert(!list_is_empty(&scheduler.ready_threads));
     return list_item(scheduler.ready_threads.head.next, thread_t, link);
 }
 
 /** Marks given thread as ready to be executed.
- *
+
+
+*
  * It is expected that this thread would be added at the end
  * of the queue to run in round-robin fashion.
  *
@@ -45,6 +41,11 @@ thread_t* scheduler_get_thread_to_launch(void) {
  */
 void scheduler_add_ready_thread(thread_t* thread) {
     assert(scheduler_is_init());
+    assert(!thread_has_finished(thread));
+
+    if (link_is_connected(&thread->link)) {
+        list_remove(&thread->link);
+    }
 
     list_append(&scheduler.ready_threads, &thread->link);
 }
@@ -61,6 +62,7 @@ void scheduler_remove_thread(thread_t* thread) {
     assert(link_is_connected(&thread->link));
 
     list_remove(&thread->link);
+    list_append(&scheduler.idle_threads, &thread->link);
 }
 
 /** Switch to next thread in the queue. */
@@ -72,7 +74,7 @@ void scheduler_schedule_next(void) {
      * Feel free to add fields to scheduler_t, and adjust the implementation of thread_switch_context()
      *
      * It should be safe to change current_thread value after the context switch.
-     * 
+     *
      * Move the current thread to the end of the queue before switching.
      */
 }

@@ -8,14 +8,12 @@
 #include <proc/thread.h>
 
 typedef struct {
-    thread_t* current_thread;
     list_t ready_threads;
+    list_t idle_threads;
 } scheduler_t;
 
 void scheduler_init(void);
 thread_t* scheduler_get_current_thread(void);
-void scheduler_set_current_thread(thread_t* thread_to_set);
-thread_t* scheduler_get_thread_to_launch(void);
 void scheduler_add_ready_thread(thread_t* id);
 void scheduler_remove_thread(thread_t* id);
 void scheduler_schedule_next(void);
