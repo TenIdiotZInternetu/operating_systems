@@ -67,6 +67,7 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     *thread_out = p_thread;
     p_thread->context.ra = (unative_t)thread_execute;
     scheduler_add_ready_thread(p_thread);
+    p_thread->state = READY;
     return EOK;
 }
 
@@ -250,6 +251,7 @@ errno_t thread_kill(thread_t* thread) {
 }
 
 const char* thread_state_str(thread_t* thread) {
+    printk("%u\n", thread->state);
     switch (thread->state) {
     case READY:
         return "READY";
