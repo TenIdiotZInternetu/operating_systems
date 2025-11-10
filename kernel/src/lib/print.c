@@ -7,6 +7,7 @@
 #include <drivers/printer.h>
 #include <lib/print.h>
 #include <lib/stdarg.h>
+#include <proc/thread.h>
 #include <types.h>
 
 const char ESCAPE_CHAR = '%';
@@ -31,6 +32,7 @@ const char SPECIFIER_POINTER = 'p';
 const char SPECIFIER_FOLLOWUP_LIST = 'L';
 const char SPECIFIER_FOLLOWUP_FUNC = 'F';
 const char SPECIFIER_FOLLOWUP_HEAP = 'A';
+const char SPECIFIER_FOLLOWUP_THREAD = 'T';
 
 char digit_to_char(uint8_t digit, bool uppercase);
 void print_string(const char* string);
@@ -165,6 +167,17 @@ static void print_heap_block(void* ptr) {
             block_head->size);
 }
 
+static void print_thread(thread_t* thread) {
+    uintptr_t stack_end = (uintptr_t)thread->stack_location + THREAD_STACK_SIZE;
+
+    printk("(%p)[\"%s\"] %s {\n", thread, thread->name, thread_state_str(thread));
+    printk("    Stack: %p - %p\n", thread->stack_location, stack_end);
+    printk("    sp: %x,  ra: %x\n", thread->context.sp, thread->context.ra);
+    printk("    arg:  %p,  retval: %p\n", thread->first_arg, thread->return_value);
+    printk("    Joined by: %p\n", thread->joined_by_thread);
+    printk("}\n");
+}
+
 void resolve_specifier(const char** format_it, va_list* args) {
     const char c = *++*format_it;
 
@@ -196,6 +209,8 @@ void resolve_specifier(const char** format_it, va_list* args) {
             print_list(va_arg(*args, list_t*));
         } else if (next_c == SPECIFIER_FOLLOWUP_FUNC) {
             print_func(va_arg(*args, void*), PRINT_FUNC_OPERATIONS);
+        } else if (next_c == SPECIFIER_FOLLOWUP_THREAD) {
+            print_thread(va_arg(*args, thread_t*));
         } else {
             print_pointer(va_arg(*args, void*));
             printer_putchar(next_c);
