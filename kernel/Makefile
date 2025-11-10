@@ -36,6 +36,7 @@ DEPEND_PREV = Makefile.depend.prev
 # config.mk as specified during configure.
 
 KERNEL_SOURCES = \
+	src/adt/bitmap.c \
 	src/main.c \
 	src/head.S \
 	src/debug/code.c \
@@ -47,7 +48,7 @@ KERNEL_SOURCES = \
 	src/proc/thread.c
 
 ifeq ($(KERNEL_MEMORY_MANAGEMENT_IMPLEMENTATION),)
-KERNEL_MM_SOURCES = src/mm/heap.c
+KERNEL_MM_SOURCES = src/mm/frame.c src/mm/heap.c
 else
 KERNEL_MM_SOURCES = $(KERNEL_MEMORY_MANAGEMENT_IMPLEMENTATION)
 endif

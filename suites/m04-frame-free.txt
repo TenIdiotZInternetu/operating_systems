@@ -1,0 +1,3 @@
+# Tests for frame_free (optional)
+kernel frame/recycle:m1024
+kernel frame/recycle:m4096
