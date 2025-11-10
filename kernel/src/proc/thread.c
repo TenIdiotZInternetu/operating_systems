@@ -248,3 +248,18 @@ errno_t thread_kill(thread_t* thread) {
     thread->state = KILLED;
     return EOK;
 }
+
+const char* thread_state_str(thread_t* thread) {
+    switch (thread->state) {
+    case READY:
+        return "READY";
+    case SUSPENDED:
+        return "SUSPENDED";
+    case FINISHED:
+        return "FINISHED";
+    case KILLED:
+        return "KILLED";
+    default:
+        panic("Invalid thread state!");
+    };
+}
