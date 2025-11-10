@@ -28,6 +28,14 @@ thread_t* scheduler_get_current_thread(void) {
     return scheduler.current_thread;
 }
 
+void scheduler_set_current_thread(thread_t* thread_to_set) {
+    scheduler.current_thread = thread_to_set;
+}
+
+thread_t* scheduler_get_thread_to_launch(void) {
+    return list_item(scheduler.ready_threads.head.next, thread_t, link);
+}
+
 /** Marks given thread as ready to be executed.
  *
  * It is expected that this thread would be added at the end
@@ -58,11 +66,13 @@ void scheduler_remove_thread(thread_t* thread) {
 /** Switch to next thread in the queue. */
 void scheduler_schedule_next(void) {
     /**
-     * TODO: Call thread_switch_context(current_thread)
+     * TODO: Call thread_switch_to(next thread)
      *
      * You need to get the context of the switched-from thread into the function.
      * Feel free to add fields to scheduler_t, and adjust the implementation of thread_switch_context()
      *
      * It should be safe to change current_thread value after the context switch.
+     * 
+     * Move the current thread to the end of the queue before switching.
      */
 }

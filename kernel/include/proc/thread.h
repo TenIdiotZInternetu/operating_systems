@@ -39,6 +39,7 @@ struct thread {
     thread_state_t state;
     void* stack_location;
     void* return_value;
+    void* first_arg;
     thread_t* joined_by_thread;
     link_t link;
 };
