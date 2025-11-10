@@ -170,12 +170,12 @@ static void print_heap_block(void* ptr) {
 static void print_thread(thread_t* thread) {
     uintptr_t stack_end = (uintptr_t)thread->stack_location + THREAD_STACK_SIZE;
 
-    printk("(%p) \"%s\" %s {\n", thread, thread->name, thread_state_str(thread));
-    printk("    Stack: %p-%p\n", thread->stack_location, stack_end);
-    printk("    sp: %x,  ra: %x\n", thread->context.sp, thread->context.ra);
-    printk("    arg:  %p,  retval: %p\n", thread->first_arg, thread->return_value);
-    printk("    Joined by: %p\n", thread->joined_by_thread);
-    printk("}\n");
+    printk("(%p) \"%s\" %s [ ", thread, thread->name, thread_state_str(thread));
+    printk("Stack: %p-%p, ", thread->stack_location, stack_end);
+    printk("sp: %x, ra: %x, ", thread->context.sp, thread->context.ra);
+    printk("arg: %p, retval: %p, ", thread->first_arg, thread->return_value);
+    printk("Joined by: %p ", thread->joined_by_thread);
+    printk("]");
 }
 
 void resolve_specifier(const char** format_it, va_list* args) {
