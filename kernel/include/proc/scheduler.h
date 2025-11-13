@@ -13,7 +13,7 @@ typedef struct {
 
     thread_t* current_thread;
     thread_t* previous_thread;
-    
+
     bool is_initialized;
 } scheduler_t;
 

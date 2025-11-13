@@ -2,12 +2,11 @@
 // Copyright 2019 Charles University
 
 #include <abi.h>
+#include <errno.h>
 #include <mm/heap.h>
 #include <proc/context.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
-#include <errno.h>
-#include <proc/scheduler.h>
 
 /** Initialize support for threading.
  *
@@ -61,7 +60,6 @@ static void thread_execute() {
 errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
     thread_t* p_thread = kmalloc(sizeof(thread_t));
 
-    
     p_thread->stack_location = kmalloc(THREAD_STACK_SIZE);
     thread_init_stack(p_thread);
 
@@ -69,11 +67,11 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     p_thread->entry_func = entry;
     p_thread->state = READY;
     p_thread->context.ra = (unative_t)thread_execute;
-    
+
     _thread_set_name(p_thread, name);
-    
+
     scheduler_add_ready_thread(p_thread);
-    
+
     *thread_out = p_thread;
     return EOK;
 }
@@ -115,7 +113,7 @@ void thread_finish(void* retval) {
     thread->return_value = retval;
 
     scheduler_remove_thread(thread);
-    
+
     while (1) {
         thread_yield();
     }
@@ -130,20 +128,20 @@ void _thread_set_name(thread_t* thread, const char* name) {
 }
 
 /** Tells if a thread finished its execution.
-   *
-   * Thread finished the execution either when it returned from the entry
-   * function, called thread_finish() or was already killed.
-   *
-   * In other words, when this function returns true, thread_join() should
-   * return immediately (it is not required but it is a natural consequence
-   * of the above).
-   *
-   * This function may not be called when thread_join() was already called
-   * on the thread in question (because the thread pointer by that time will
-   * not be valid).
-   *
-   * @param thread Thread in question.
-   */
+ *
+ * Thread finished the execution either when it returned from the entry
+ * function, called thread_finish() or was already killed.
+ *
+ * In other words, when this function returns true, thread_join() should
+ * return immediately (it is not required but it is a natural consequence
+ * of the above).
+ *
+ * This function may not be called when thread_join() was already called
+ * on the thread in question (because the thread pointer by that time will
+ * not be valid).
+ *
+ * @param thread Thread in question.
+ */
 bool thread_has_finished(thread_t* thread) {
     return thread->state == FINISHED || thread->state == KILLED;
 }
@@ -220,7 +218,7 @@ errno_t thread_join(thread_t* thread, void** retval) {
     if (retval != NULL) {
         *retval = thread->return_value;
     }
-    
+
     list_remove(&thread->link);
     kfree(thread->stack_location);
     kfree(thread);
@@ -239,7 +237,7 @@ void thread_switch_to(thread_t* thread) {
     context_t dummy_context;
 
     thread_t* prev = scheduler_get_previous_thread();
-    
+
     if (prev == NULL) {
         cur_context = &dummy_context;
     } else {
@@ -247,7 +245,7 @@ void thread_switch_to(thread_t* thread) {
     }
 
     thread->state = READY;
-    
+
     cpu_switch_context(cur_context, &thread->context);
 }
 

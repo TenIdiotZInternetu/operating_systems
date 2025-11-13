@@ -2,8 +2,8 @@
 // Copyright 2019 Charles University
 
 #include <debug.h>
-#include <proc/scheduler.h>
 #include <debug/code.h>
+#include <proc/scheduler.h>
 
 static scheduler_t scheduler;
 
@@ -51,7 +51,7 @@ static void _remove_from_queue(thread_t* thread) {
  * Moves the given thread to either the ready or idle list based on whether it is ready.
  */
 static void _move_to_list(thread_t* thread, bool ready) {
-    list_t *p_list_to_append = ready ? &scheduler.ready_threads : &scheduler.idle_threads;
+    list_t* p_list_to_append = ready ? &scheduler.ready_threads : &scheduler.idle_threads;
     list_append(p_list_to_append, &thread->link);
 }
 
@@ -81,9 +81,8 @@ static thread_t* scheduler_get_thread_to_launch(void) {
     return list_item(scheduler.ready_threads.head.next, thread_t, link);
 }
 
-
 /** Marks given thread as ready to be executed.
-*
+ *
  * It is expected that this thread would be added at the end
  * of the queue to run in round-robin fashion.
  *
@@ -107,39 +106,38 @@ void scheduler_add_ready_thread(thread_t* thread) {
  */
 void scheduler_remove_thread(thread_t* thread) {
     assert(scheduler_is_init());
-    
+
     _remove_from_queue(thread);
-    
+
     _move_to_list(thread, false);
 }
 
-
 /** Switch to next thread in the queue. */
 void scheduler_schedule_next(void) {
-    
-    thread_t *p_cur_thread = scheduler.current_thread;
+
+    thread_t* p_cur_thread = scheduler.current_thread;
 
     bool is_cur_ready = _can_thread_run(p_cur_thread);
 
     if (!_has_ready_threads()) {
         if (is_cur_ready) {
-            return;  // Nowhere to switch
+            return; // Nowhere to switch
         } else {
             panic("No threads to schedule.");
         }
     }
-    
+
     if (is_cur_ready) {
         _remove_from_queue(p_cur_thread);
         _move_to_list(p_cur_thread, true);
     }
-    
-    thread_t *p_next_thread = scheduler_get_thread_to_launch();
+
+    thread_t* p_next_thread = scheduler_get_thread_to_launch();
     _remove_from_queue(p_next_thread);
-    
+
     // Save for context switch
     _save_for_context_switch(p_cur_thread, p_next_thread);
-    
+
     thread_switch_to(p_next_thread);
 }
 
@@ -166,4 +164,3 @@ void print_scheduler(void) {
     printk("    Total count: %u\n", ready_thread_count + idle_thread_count);
     printk("}\n");
 }
-
