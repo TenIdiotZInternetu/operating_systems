@@ -44,6 +44,7 @@ void kernel_main(void) {
 
     thread_t* main_thread;
     errno_t err = thread_create(&main_thread, init_thread, NULL, 0, "[INIT]");
+    print_scheduler();
     panic_if(err != EOK, "init thread creation failed (%d: %s)", err, errno_as_str(err));
 
     // Switch to the first thread.

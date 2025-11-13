@@ -8,15 +8,11 @@
 #include <proc/thread.h>
 #include <errno.h>
 
-static list_t threads;
-
 /** Initialize support for threading.
  *
  * Called once at system boot.
  */
-void threads_init(void) {
-    list_init(&threads);
-}
+void threads_init(void) { }
 
 /**
  * Sets the stack pointer in the thread's context and puts
@@ -31,14 +27,13 @@ static void thread_init_stack(thread_t* thread) {
     thread->context.sp = stack_ptr;
 }
 
-/** 
- * Launches new thread and passes argument of entry_func 
+/**
+ * Launches new thread and passes argument of entry_func
  * to a0. After entry_func finishes, this function saves
  * the return value and calls thread_finish
  */
 static void thread_execute() {
-    thread_t* thread_to_execute = scheduler_get_thread_to_launch();
-    scheduler_set_current_thread(thread_to_execute);
+    thread_t* thread_to_execute = scheduler_get_current_thread();
     void* retval = thread_to_execute->entry_func(thread_to_execute->first_arg);
     thread_finish(retval);
 }
@@ -70,10 +65,10 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
 
     // TODO loop over name to fill thread->name
 
-    list_append(&threads, &p_thread->link);
     *thread_out = p_thread;
     p_thread->context.ra = (unative_t)thread_execute;
     scheduler_add_ready_thread(p_thread);
+    p_thread->state = READY;
     return EOK;
 }
 
@@ -257,4 +252,19 @@ errno_t thread_kill(thread_t* thread) {
     kfree(thread->stack_location);
     thread->state = KILLED;
     return EOK;
+}
+
+const char* thread_state_str(thread_t* thread) {
+    switch (thread->state) {
+    case READY:
+        return "READY";
+    case SUSPENDED:
+        return "SUSPENDED";
+    case FINISHED:
+        return "FINISHED";
+    case KILLED:
+        return "KILLED";
+    default:
+        panic("Invalid thread state!");
+    };
 }
