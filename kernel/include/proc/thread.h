@@ -42,6 +42,7 @@ struct thread {
     void* first_arg;
     thread_t* joined_by_thread;
     link_t link;
+    bool is_initialized;
 };
 
 void threads_init(void);
