@@ -52,6 +52,7 @@ thread_t* thread_get_current(void);
 void thread_yield(void);
 void thread_suspend(void);
 void thread_finish(void* retval) __attribute__((noreturn));
+void _thread_set_name(thread_t *thread, const char* name);
 bool thread_has_finished(thread_t* thread);
 
 errno_t thread_wakeup(thread_t* thread);
