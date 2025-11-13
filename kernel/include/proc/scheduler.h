@@ -10,10 +10,16 @@
 typedef struct {
     list_t ready_threads;
     list_t idle_threads;
+
+    thread_t* current_thread;
+    thread_t* previous_thread;
+    
+    bool is_initialized;
 } scheduler_t;
 
 void scheduler_init(void);
 thread_t* scheduler_get_current_thread(void);
+thread_t* scheduler_get_previous_thread(void);
 void scheduler_add_ready_thread(thread_t* id);
 void scheduler_remove_thread(thread_t* id);
 void scheduler_schedule_next(void);
