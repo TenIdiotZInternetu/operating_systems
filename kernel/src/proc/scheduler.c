@@ -3,6 +3,7 @@
 
 #include <debug.h>
 #include <proc/scheduler.h>
+#include <debug/code.h>
 
 static scheduler_t scheduler;
 
@@ -11,8 +12,10 @@ static scheduler_t scheduler;
  * @return true if the scheduler has been initialized
  */
 static bool scheduler_is_init() {
-    // TODO
-    return true;
+
+    link_t *ready_threads_head = &scheduler.ready_threads.head;
+    
+    return (ready_threads_head->next == ready_threads_head && ready_threads_head->prev == ready_threads_head);
 }
 
 /** Initialize support for scheduling.
@@ -75,4 +78,19 @@ void scheduler_schedule_next(void) {
      * 
      * Move the current thread to the end of the queue before switching.
      */
+
+    thread_t *p_cur_thread = scheduler_get_current_thread();
+
+    thread_suspend();
+
+    scheduler_add_ready_thread(p_cur_thread);
+
+    thread_t *p_next_thread = scheduler_get_thread_to_launch();
+
+    //scheduler_set_current_thread(p_next_thread);
+
+    thread_switch_to(p_next_thread);
+
+    scheduler_set_current_thread(p_next_thread);
+
 }

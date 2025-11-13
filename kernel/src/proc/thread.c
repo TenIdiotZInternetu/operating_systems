@@ -6,6 +6,7 @@
 #include <proc/context.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
+#include <errno.h>
 
 static list_t threads;
 
@@ -229,7 +230,10 @@ void thread_switch_to(thread_t* thread) {
         cur_context = &thread_get_current()->context;
     }
 
+    thread->state = READY;
+    
     cpu_switch_context(cur_context, &thread->context);
+
 }
 
 /** Kills given thread.
