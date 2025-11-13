@@ -59,16 +59,20 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     // TODO check if theres enough space for malloc
 
     thread_t* p_thread = kmalloc(sizeof(p_thread));
+
     p_thread->stack_location = kmalloc(THREAD_STACK_SIZE);
     thread_init_stack(p_thread);
+
     p_thread->first_arg = data;
-
-    // TODO loop over name to fill thread->name
-
-    *thread_out = p_thread;
-    p_thread->context.ra = (unative_t)thread_execute;
-    scheduler_add_ready_thread(p_thread);
+    p_thread->entry_func = entry;
     p_thread->state = READY;
+    p_thread->context.ra = (unative_t)thread_execute;
+    
+    _thread_set_name(p_thread, name);
+    
+    scheduler_add_ready_thread(p_thread);
+    
+    *thread_out = p_thread;
     return EOK;
 }
 
@@ -104,13 +108,23 @@ void thread_suspend(void) {
  */
 void thread_finish(void* retval) {
     thread_t* thread = thread_get_current();
+
     thread->state = FINISHED;
     thread->return_value = retval;
+
     scheduler_remove_thread(thread);
 
     while (1) {
         thread_yield();
     }
+}
+
+void _thread_set_name(thread_t* thread, const char* name) {
+    size_t i;
+    for (i = 0; i < THREAD_NAME_MAX_LENGTH && name[i] != '\0'; i++) {
+        thread->name[i] = name[i];
+    }
+    thread->name[i] = '\0';
 }
 
 /** Tells if a thread finished its execution.
