@@ -59,10 +59,9 @@ static void thread_execute() {
  * @retval EINVAL Invalid flags (unused).
  */
 errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
-    // TODO check if theres enough space for malloc
-    
-    thread_t* p_thread = kmalloc(sizeof(p_thread));
+    thread_t* p_thread = kmalloc(sizeof(thread_t));
 
+    
     p_thread->stack_location = kmalloc(THREAD_STACK_SIZE);
     thread_init_stack(p_thread);
 
