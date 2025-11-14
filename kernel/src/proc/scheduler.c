@@ -11,7 +11,7 @@ static scheduler_t scheduler;
  * Checks if the scheduler has been initialized
  * @return true if the scheduler has been initialized
  */
-static bool scheduler_is_init() {
+static bool _scheduler_is_init() {
     return scheduler.is_initialized;
 }
 
@@ -30,7 +30,7 @@ void scheduler_init(void) {
 }
 
 thread_t* scheduler_get_current_thread(void) {
-    assert(scheduler_is_init());
+    assert(_scheduler_is_init());
     return scheduler.current_thread;
 }
 
@@ -38,7 +38,7 @@ thread_t* scheduler_get_current_thread(void) {
  * Returns the previously running thread before the last context switch.
  */
 thread_t* scheduler_get_previous_thread(void) {
-    assert(scheduler_is_init());
+    assert(_scheduler_is_init());
     return scheduler.previous_thread;
 }
 
@@ -68,7 +68,7 @@ static thread_t* _scheduler_get_thread_to_run(void) {
  * @param thread Thread to make runnable.
  */
 void scheduler_add_to_ready_threads(thread_t* thread) {
-    assert(scheduler_is_init());
+    assert(_scheduler_is_init());
     assert(!thread_has_finished(thread));
 
     if (link_is_connected(&thread->link)) {
@@ -85,7 +85,7 @@ void scheduler_add_to_ready_threads(thread_t* thread) {
  * @param thread Thread to remove from the queue.
  */
 void scheduler_remove_from_ready_threads(thread_t* thread) {
-    assert(scheduler_is_init());
+    assert(_scheduler_is_init());
     assert(link_is_connected(&thread->link));
 
     list_remove(&thread->link);

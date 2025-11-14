@@ -21,7 +21,7 @@ void threads_init(void) { }
  * 2. SP must be aligned to 128-bit boundary
  * @param thread Thread for which we are initializing the stack
  */
-static void thread_init_stack(thread_t* thread) {
+static void _thread_init_stack(thread_t* thread) {
     uintptr_t stack_ptr_unaligned = (uintptr_t)thread->stack_location + THREAD_STACK_SIZE;
     uintptr_t stack_ptr = stack_ptr_unaligned - (stack_ptr_unaligned % ABI_STACK_ALIGNMENT);
     thread->context.sp = stack_ptr;
@@ -32,7 +32,7 @@ static void thread_init_stack(thread_t* thread) {
  * to a0. After entry_func finishes, this function saves
  * the return value and calls thread_finish
  */
-static void thread_execute() {
+static void _thread_execute() {
     thread_t* thread_to_execute = thread_get_current();
 
     void* retval = thread_to_execute->entry_func(thread_to_execute->first_arg);
@@ -61,12 +61,12 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     thread_t* p_thread = kmalloc(sizeof(thread_t));
 
     p_thread->stack_location = kmalloc(THREAD_STACK_SIZE);
-    thread_init_stack(p_thread);
+    _thread_init_stack(p_thread);
 
     p_thread->first_arg = data;
     p_thread->entry_func = entry;
     p_thread->state = READY;
-    p_thread->context.ra = (unative_t)thread_execute;
+    p_thread->context.ra = (unative_t)_thread_execute;
     p_thread->joined_by_thread = NULL;
     p_thread->is_initialized = true;
 
