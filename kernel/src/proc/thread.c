@@ -33,7 +33,7 @@ static void thread_init_stack(thread_t* thread) {
  * the return value and calls thread_finish
  */
 static void thread_execute() {
-    thread_t* thread_to_execute = scheduler_get_current_thread();
+    thread_t* thread_to_execute = thread_get_current();
 
     void* retval = thread_to_execute->entry_func(thread_to_execute->first_arg);
 
@@ -73,7 +73,7 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     link_init(&p_thread->link);
     _thread_set_name(p_thread, name);
 
-    scheduler_add_ready_thread(p_thread);
+    scheduler_add_to_ready_threads(p_thread);
 
     *thread_out = p_thread;
     return EOK;
@@ -96,7 +96,7 @@ void thread_yield(void) {
 void thread_suspend(void) {
     thread_t* thread = thread_get_current();
     thread->state = SUSPENDED;
-    scheduler_remove_thread(thread);
+    scheduler_remove_from_ready_threads(thread);
     thread_yield();
 }
 
@@ -116,7 +116,7 @@ void thread_finish(void* retval) {
     thread->state = FINISHED;
     thread->return_value = retval;
 
-    scheduler_remove_thread(thread);
+    scheduler_remove_from_ready_threads(thread);
 
     while (1) {
         thread_yield();
@@ -169,12 +169,12 @@ errno_t thread_wakeup(thread_t* thread) {
     }
 
     thread->state = READY;
-    scheduler_add_ready_thread(thread);
+    scheduler_add_to_ready_threads(thread);
     return EOK;
 }
 
-static bool thread_is_valid(thread_t* thread) {
-    return thread != NULL && thread != scheduler_get_current_thread() && thread->is_initialized;
+static bool _thread_is_valid(thread_t* thread) {
+    return thread != NULL && thread != thread_get_current() && thread->is_initialized;
 }
 
 /** Joins another thread (waits for it to terminate).
@@ -217,13 +217,13 @@ static bool thread_is_valid(thread_t* thread) {
  * @retval EKILLED Thread was killed.
  */
 errno_t thread_join(thread_t* thread, void** retval) {
-    if (!thread_is_valid(thread)) {
+    if (!_thread_is_valid(thread)) {
         return EINVAL;
     } else if (thread->joined_by_thread != NULL) {
         return EBUSY;
     }
 
-    thread->joined_by_thread = scheduler_get_current_thread();
+    thread->joined_by_thread = thread_get_current();
 
     while (!thread_has_finished(thread)) {
         thread_yield();
@@ -283,11 +283,14 @@ errno_t thread_kill(thread_t* thread) {
         return EEXITED;
     }
 
-    scheduler_remove_thread(thread);
+    if (thread->state == READY) {
+        scheduler_remove_from_ready_threads(thread);
+    }
+
     kfree(thread->stack_location);
     thread->state = KILLED;
 
-    if (thread == scheduler_get_current_thread()) {
+    if (thread == thread_get_current()) {
         thread_yield();
     }
     return EOK;
