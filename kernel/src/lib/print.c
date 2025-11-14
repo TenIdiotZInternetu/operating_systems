@@ -168,6 +168,11 @@ static void print_heap_block(void* ptr) {
 }
 
 static void print_thread(thread_t* thread) {
+    if (thread == NULL) {
+        printk("(nil)");
+        return;
+    }
+
     uintptr_t stack_end = (uintptr_t)thread->stack_location + THREAD_STACK_SIZE;
 
     printk("(%p) \"%s\" %s [ ", thread, thread->name, thread_state_str(thread));
