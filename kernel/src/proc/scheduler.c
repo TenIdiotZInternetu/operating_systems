@@ -114,9 +114,7 @@ void scheduler_remove_thread(thread_t* thread) {
 
 /** Switch to next thread in the queue. */
 void scheduler_schedule_next(void) {
-
     thread_t* p_cur_thread = scheduler.current_thread;
-
     bool is_cur_ready = _can_thread_run(p_cur_thread);
 
     if (!_has_ready_threads()) {
@@ -135,9 +133,7 @@ void scheduler_schedule_next(void) {
     thread_t* p_next_thread = scheduler_get_thread_to_launch();
     _remove_from_queue(p_next_thread);
 
-    // Save for context switch
     _save_for_context_switch(p_cur_thread, p_next_thread);
-
     thread_switch_to(p_next_thread);
 }
 

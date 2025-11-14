@@ -217,15 +217,9 @@ static bool thread_is_valid(thread_t* thread) {
  * @retval EKILLED Thread was killed.
  */
 errno_t thread_join(thread_t* thread, void** retval) {
-    printk("%s\n", thread_state_str(thread));
-    // TODO Invalid join calls (killed, joined by someone else etc.)
-    if (thread->state == KILLED) {
-        return EKILLED;
-    }
-    else if (!thread_is_valid(thread)) {
+    if (!thread_is_valid(thread)) {
         return EINVAL;
-    }
-    else if (thread->joined_by_thread != NULL) {
+    } else if (thread->joined_by_thread != NULL) {
         return EBUSY;
     }
 
@@ -233,6 +227,10 @@ errno_t thread_join(thread_t* thread, void** retval) {
 
     while (!thread_has_finished(thread)) {
         thread_yield();
+    }
+
+    if (thread->state == KILLED) {
+        return EKILLED;
     }
 
     if (retval != NULL) {
@@ -253,20 +251,19 @@ errno_t thread_join(thread_t* thread, void** retval) {
  * @param thread Thread to switch to.
  */
 void thread_switch_to(thread_t* thread) {
-    context_t* cur_context;
+    assert(thread->state == READY);
+    context_t* prev_context;
     context_t dummy_context;
 
     thread_t* prev = scheduler_get_previous_thread();
 
     if (prev == NULL) {
-        cur_context = &dummy_context;
+        prev_context = &dummy_context;
     } else {
-        cur_context = &prev->context;
+        prev_context = &prev->context;
     }
 
-    thread->state = READY;
-
-    cpu_switch_context(cur_context, &thread->context);
+    cpu_switch_context(prev_context, &thread->context);
 }
 
 /** Kills given thread.
@@ -289,6 +286,7 @@ errno_t thread_kill(thread_t* thread) {
     scheduler_remove_thread(thread);
     kfree(thread->stack_location);
     thread->state = KILLED;
+
     if (thread == scheduler_get_current_thread()) {
         thread_yield();
     }
