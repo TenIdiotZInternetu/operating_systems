@@ -28,6 +28,7 @@ stages:
   - M01
   - M02
   - M03
+  - M04
 
 # Check C style of the code
 check-cstyle:
@@ -138,4 +139,36 @@ thread-params:
   allow_failure: false
   script:
     - ./tools/ci.sh suites/m03-thread-params.txt
+
+# M04: base-m04 (Internal tests (required))
+base-m04:
+  stage: M04
+  needs: [base-m03]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m04-base.txt
+
+# M04: frame-base (Base frame allocator tests (required))
+frame-base:
+  stage: M04
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m04-frame-base.txt
+
+# M04: frame-dynamic (Frame bitmap dynamically allocated (optional))
+frame-dynamic:
+  stage: M04
+  needs: [frame-base]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m04-frame-dynamic.txt
+
+# M04: frame-free (Tests for frame_free (optional))
+frame-free:
+  stage: M04
+  needs: [frame-base]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m04-frame-free.txt
 

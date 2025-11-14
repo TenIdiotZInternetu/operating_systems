@@ -7,6 +7,7 @@
 #include <ktest.h>
 #include <lib/print.h>
 #include <main.h>
+#include <mm/frame.h>
 #include <mm/heap.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
@@ -38,13 +39,13 @@ static void* init_thread(void* ignored) {
  * function runs on special stack and does not represent a real thread (yet).
  */
 void kernel_main(void) {
+    frame_init();
     heap_init();
     scheduler_init();
     threads_init();
 
     thread_t* main_thread;
     errno_t err = thread_create(&main_thread, init_thread, NULL, 0, "[INIT]");
-    print_scheduler();
     panic_if(err != EOK, "init thread creation failed (%d: %s)", err, errno_as_str(err));
 
     // Switch to the first thread.
