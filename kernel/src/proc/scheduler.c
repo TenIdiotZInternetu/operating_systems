@@ -100,17 +100,19 @@ void scheduler_schedule_next(void) {
     if (!_has_ready_threads()) {
         panic("No threads to schedule.");
     }
+    
+    thread_t* p_next_thread = _scheduler_get_thread_to_run();
 
     if (is_cur_ready) {
         list_rotate(&scheduler.ready_threads);
     }
 
-    thread_t* p_next_thread = _scheduler_get_thread_to_run();
-
-    // Save for context switch
-    scheduler.previous_thread = p_cur_thread;
-    scheduler.current_thread = p_next_thread;
-    thread_switch_to(p_next_thread);
+    if (p_cur_thread != p_next_thread) {
+        // Save for context switch
+        scheduler.previous_thread = p_cur_thread;
+        scheduler.current_thread = p_next_thread;
+        thread_switch_to(p_next_thread);
+    }
 }
 
 void print_scheduler(void) {
