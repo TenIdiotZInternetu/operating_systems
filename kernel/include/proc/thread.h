@@ -60,4 +60,6 @@ void thread_switch_to(thread_t* thread);
 
 errno_t thread_kill(thread_t* thread);
 
+const char* thread_state_str(thread_t* thread);
+
 #endif
