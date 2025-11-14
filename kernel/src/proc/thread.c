@@ -59,8 +59,16 @@ static void thread_execute() {
  */
 errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
     thread_t* p_thread = kmalloc(sizeof(thread_t));
+    if (p_thread == NULL) {
+        return ENOMEM;
+    }
 
     p_thread->stack_location = kmalloc(THREAD_STACK_SIZE);
+    if (p_thread->stack_location == NULL) {
+        kfree(p_thread);
+        return ENOMEM;
+    }
+
     thread_init_stack(p_thread);
 
     p_thread->first_arg = data;
