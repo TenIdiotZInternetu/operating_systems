@@ -2,6 +2,7 @@
 // Copyright 2019 Charles University
 
 #include <debug.h>
+#include <debug/code.h>
 #include <proc/scheduler.h>
 
 static scheduler_t scheduler;
@@ -11,8 +12,7 @@ static scheduler_t scheduler;
  * @return true if the scheduler has been initialized
  */
 static bool scheduler_is_init() {
-    // TODO
-    return true;
+    return scheduler.is_initialized;
 }
 
 /** Initialize support for scheduling.
@@ -22,18 +22,67 @@ static bool scheduler_is_init() {
 void scheduler_init(void) {
     list_init(&scheduler.ready_threads);
     list_init(&scheduler.idle_threads);
+
+    scheduler.current_thread = NULL;
+
+    scheduler.is_initialized = true;
 }
 
 thread_t* scheduler_get_current_thread(void) {
     assert(scheduler_is_init());
-    assert(!list_is_empty(&scheduler.ready_threads));
+    return scheduler.current_thread;
+}
+
+/**
+ * Returns the previously running thread before the last context switch.
+ */
+thread_t* scheduler_get_previous_thread(void) {
+    assert(scheduler_is_init());
+    return scheduler.previous_thread;
+}
+
+static void _remove_from_queue(thread_t* thread) {
+    if (link_is_connected(&thread->link)) {
+        list_remove(&thread->link);
+    }
+}
+
+/**
+ * Moves the given thread to either the ready or idle list based on whether it is ready.
+ */
+static void _move_to_list(thread_t* thread, bool ready) {
+    list_t* p_list_to_append = ready ? &scheduler.ready_threads : &scheduler.idle_threads;
+    list_append(p_list_to_append, &thread->link);
+}
+
+static bool _has_ready_threads(void) {
+    return !list_is_empty(&scheduler.ready_threads);
+}
+
+/**
+ * Determines if a thread is valid and in the READY state.
+ */
+static bool _can_thread_run(thread_t* thread) {
+    return (thread != NULL && thread->state == READY);
+}
+
+/**
+ * Saves the source and destination threads for an upcoming context switch.
+ */
+static void _save_for_context_switch(thread_t* thread_from, thread_t* thread_to) {
+    scheduler.previous_thread = thread_from;
+    scheduler.current_thread = thread_to;
+}
+
+/**
+ * Retrieves the first thread on the ready list.
+ */
+static thread_t* scheduler_get_thread_to_launch(void) {
     return list_item(scheduler.ready_threads.head.next, thread_t, link);
 }
 
 /** Marks given thread as ready to be executed.
-
-
-*
+ *
  * It is expected that this thread would be added at the end
  * of the queue to run in round-robin fashion.
  *
@@ -43,11 +92,9 @@ void scheduler_add_ready_thread(thread_t* thread) {
     assert(scheduler_is_init());
     assert(!thread_has_finished(thread));
 
-    if (link_is_connected(&thread->link)) {
-        list_remove(&thread->link);
-    }
+    _remove_from_queue(thread);
 
-    list_append(&scheduler.ready_threads, &thread->link);
+    _move_to_list(thread, true);
 }
 
 /** Removes given thread from scheduling.
@@ -59,24 +106,35 @@ void scheduler_add_ready_thread(thread_t* thread) {
  */
 void scheduler_remove_thread(thread_t* thread) {
     assert(scheduler_is_init());
-    assert(link_is_connected(&thread->link));
 
-    list_remove(&thread->link);
-    list_append(&scheduler.idle_threads, &thread->link);
+    _remove_from_queue(thread);
+
+    _move_to_list(thread, false);
 }
 
 /** Switch to next thread in the queue. */
 void scheduler_schedule_next(void) {
-    /**
-     * TODO: Call thread_switch_to(next thread)
-     *
-     * You need to get the context of the switched-from thread into the function.
-     * Feel free to add fields to scheduler_t, and adjust the implementation of thread_switch_context()
-     *
-     * It should be safe to change current_thread value after the context switch.
-     *
-     * Move the current thread to the end of the queue before switching.
-     */
+    thread_t* p_cur_thread = scheduler.current_thread;
+    bool is_cur_ready = _can_thread_run(p_cur_thread);
+
+    if (!_has_ready_threads()) {
+        if (is_cur_ready) {
+            return; // Nowhere to switch
+        } else {
+            panic("No threads to schedule.");
+        }
+    }
+
+    if (is_cur_ready) {
+        _remove_from_queue(p_cur_thread);
+        _move_to_list(p_cur_thread, true);
+    }
+
+    thread_t* p_next_thread = scheduler_get_thread_to_launch();
+    _remove_from_queue(p_next_thread);
+
+    _save_for_context_switch(p_cur_thread, p_next_thread);
+    thread_switch_to(p_next_thread);
 }
 
 void print_scheduler(void) {

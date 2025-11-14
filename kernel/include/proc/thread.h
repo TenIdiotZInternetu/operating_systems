@@ -42,6 +42,7 @@ struct thread {
     void* first_arg;
     thread_t* joined_by_thread;
     link_t link;
+    bool is_initialized;
 };
 
 void threads_init(void);
@@ -52,6 +53,7 @@ thread_t* thread_get_current(void);
 void thread_yield(void);
 void thread_suspend(void);
 void thread_finish(void* retval) __attribute__((noreturn));
+void _thread_set_name(thread_t* thread, const char* name);
 bool thread_has_finished(thread_t* thread);
 
 errno_t thread_wakeup(thread_t* thread);
