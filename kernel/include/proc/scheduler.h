@@ -4,11 +4,20 @@
 #ifndef _PROC_SCHEDULER_H
 #define _PROC_SCHEDULER_H
 
+#include <adt/list.h>
 #include <proc/thread.h>
 
+typedef struct {
+    list_t ready_threads;
+    list_t idle_threads;
+} scheduler_t;
+
 void scheduler_init(void);
+thread_t* scheduler_get_current_thread(void);
 void scheduler_add_ready_thread(thread_t* id);
 void scheduler_remove_thread(thread_t* id);
 void scheduler_schedule_next(void);
+
+void print_scheduler(void);
 
 #endif

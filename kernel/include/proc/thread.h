@@ -4,7 +4,9 @@
 #ifndef _PROC_THREAD_H
 #define _PROC_THREAD_H
 
+#include <adt/list.h>
 #include <errno.h>
+#include <proc/context.h>
 #include <types.h>
 
 /** Thread stack size.
@@ -23,9 +25,23 @@ typedef void* (*thread_entry_func_t)(void*);
 /** Information about any existing thread. */
 typedef struct thread thread_t;
 
+typedef enum {
+    READY,
+    SUSPENDED,
+    FINISHED,
+    KILLED
+} thread_state_t;
+
 struct thread {
     char name[THREAD_NAME_MAX_LENGTH + 1];
     thread_entry_func_t entry_func;
+    context_t context;
+    thread_state_t state;
+    void* stack_location;
+    void* return_value;
+    void* first_arg;
+    thread_t* joined_by_thread;
+    link_t link;
 };
 
 void threads_init(void);
@@ -43,5 +59,7 @@ errno_t thread_join(thread_t* thread, void** retval);
 void thread_switch_to(thread_t* thread);
 
 errno_t thread_kill(thread_t* thread);
+
+const char* thread_state_str(thread_t* thread);
 
 #endif

@@ -2,6 +2,7 @@
 // Copyright 2019 Charles University
 
 #include <abi.h>
+#include <mm/heap.h>
 #include <proc/context.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
@@ -10,7 +11,30 @@
  *
  * Called once at system boot.
  */
-void threads_init(void) {
+void threads_init(void) { }
+
+/**
+ * Sets the stack pointer in the thread's context and puts
+ * the input arguments on the stack according to ABI:
+ * 1. Stack grows to lower addresses => SP starts at the end of the allocated block
+ * 2. SP must be aligned to 128-bit boundary
+ * @param thread Thread for which we are initializing the stack
+ */
+static void thread_init_stack(thread_t* thread) {
+    uintptr_t stack_ptr_unaligned = (uintptr_t)thread->stack_location + THREAD_STACK_SIZE;
+    uintptr_t stack_ptr = stack_ptr_unaligned - (stack_ptr_unaligned % ABI_STACK_ALIGNMENT);
+    thread->context.sp = stack_ptr;
+}
+
+/**
+ * Launches new thread and passes argument of entry_func
+ * to a0. After entry_func finishes, this function saves
+ * the return value and calls thread_finish
+ */
+static void thread_execute() {
+    thread_t* thread_to_execute = scheduler_get_current_thread();
+    void* retval = thread_to_execute->entry_func(thread_to_execute->first_arg);
+    thread_finish(retval);
 }
 
 /** Create a new thread.
@@ -31,7 +55,20 @@ void threads_init(void) {
  * @retval EINVAL Invalid flags (unused).
  */
 errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
-    return ENOIMPL;
+    // TODO check if theres enough space for malloc
+
+    thread_t* p_thread = kmalloc(sizeof(p_thread));
+    p_thread->stack_location = kmalloc(THREAD_STACK_SIZE);
+    thread_init_stack(p_thread);
+    p_thread->first_arg = data;
+
+    // TODO loop over name to fill thread->name
+
+    *thread_out = p_thread;
+    p_thread->context.ra = (unative_t)thread_execute;
+    scheduler_add_ready_thread(p_thread);
+    p_thread->state = READY;
+    return EOK;
 }
 
 /** Return information about currently executing thread.
@@ -39,15 +76,19 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
  * @retval NULL When no thread was started yet.
  */
 thread_t* thread_get_current(void) {
-    return NULL;
+    return scheduler_get_current_thread();
 }
 
 /** Yield the processor. */
 void thread_yield(void) {
+    scheduler_schedule_next();
 }
 
 /** Current thread stops execution and is not scheduled until woken up. */
 void thread_suspend(void) {
+    thread_t* thread = thread_get_current();
+    thread->state = SUSPENDED;
+    scheduler_remove_thread(thread);
 }
 
 /** Terminate currently running thread.
@@ -61,7 +102,13 @@ void thread_suspend(void) {
  * @param retval Data to return in thread_join.
  */
 void thread_finish(void* retval) {
+    thread_t* thread = thread_get_current();
+    thread->state = FINISHED;
+    thread->return_value = retval;
+    scheduler_remove_thread(thread);
+
     while (1) {
+        thread_yield();
     }
 }
 
@@ -81,7 +128,7 @@ void thread_finish(void* retval) {
  * @param thread Thread in question.
  */
 bool thread_has_finished(thread_t* thread) {
-    return false;
+    return thread->state == FINISHED || thread->state == KILLED;
 }
 
 /** Wakes-up existing thread.
@@ -98,7 +145,13 @@ bool thread_has_finished(thread_t* thread) {
  * @retval EEXITED Thread already finished its execution.
  */
 errno_t thread_wakeup(thread_t* thread) {
-    return ENOIMPL;
+    if (thread_has_finished(thread)) {
+        return EEXITED;
+    }
+
+    thread->state = READY;
+    scheduler_add_ready_thread(thread);
+    return EOK;
 }
 
 /** Joins another thread (waits for it to terminate).
@@ -141,7 +194,17 @@ errno_t thread_wakeup(thread_t* thread) {
  * @retval EKILLED Thread was killed.
  */
 errno_t thread_join(thread_t* thread, void** retval) {
-    return ENOIMPL;
+    // TODO Invalid join calls (killed, joined by someone else etc.)
+
+    while (!thread_has_finished(thread)) {
+        thread_yield();
+    }
+
+    *retval = &thread->return_value;
+    list_remove(&thread->link);
+    kfree(thread->stack_location);
+    kfree(thread);
+    return EOK;
 }
 
 /** Switch CPU context to a different thread.
@@ -152,6 +215,16 @@ errno_t thread_join(thread_t* thread, void** retval) {
  * @param thread Thread to switch to.
  */
 void thread_switch_to(thread_t* thread) {
+    context_t* cur_context;
+    context_t dummy_context;
+
+    if (thread_get_current() == NULL) {
+        cur_context = &dummy_context;
+    } else {
+        cur_context = &thread_get_current()->context;
+    }
+
+    cpu_switch_context(cur_context, &thread->context);
 }
 
 /** Kills given thread.
@@ -167,5 +240,27 @@ void thread_switch_to(thread_t* thread) {
  * @retval EEXITED Thread already finished its execution.
  */
 errno_t thread_kill(thread_t* thread) {
-    return ENOIMPL;
+    if (thread_has_finished(thread)) {
+        return EEXITED;
+    }
+
+    scheduler_remove_thread(thread);
+    kfree(thread->stack_location);
+    thread->state = KILLED;
+    return EOK;
+}
+
+const char* thread_state_str(thread_t* thread) {
+    switch (thread->state) {
+    case READY:
+        return "READY";
+    case SUSPENDED:
+        return "SUSPENDED";
+    case FINISHED:
+        return "FINISHED";
+    case KILLED:
+        return "KILLED";
+    default:
+        panic("Invalid thread state!");
+    };
 }
