@@ -15,5 +15,6 @@
 void frame_init(void);
 errno_t frame_alloc(size_t count, uintptr_t* phys);
 errno_t frame_free(size_t count, uintptr_t phys);
+uintptr_t frames_end_address(void);
 
 #endif

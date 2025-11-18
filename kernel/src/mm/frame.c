@@ -34,10 +34,6 @@ void frame_init(void) {
     memory_start = _align(kernel_get_image_end());
 }
 
-static uintptr_t _get_frame_addr(uint16_t frame_idx) {
-    return memory_start + frame_idx * FRAME_SIZE;
-}
-
 /**
  * Allocate continuous sequence of physical frames.
  *
@@ -68,7 +64,7 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
         return ENOMEM;
     }
 
-    *phys = _get_frame_addr(frame_idx);
+    *phys = memory_start + frame_idx * FRAME_SIZE;
     bitmap_fill_range(&frame_bits, frame_idx, count);
     return EOK;
 }
@@ -88,13 +84,18 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
 errno_t frame_free(size_t count, uintptr_t phys) {
     assert(count > 0);
 
-    if (!bitmap_check_range_is(&frame_bits, phys, count, true)) {
+    // TODO: Check if phys is a multiple of FRAME_SIZE and that its within allowed range
+
+    size_t frame_idx = (phys - memory_start) / FRAME_SIZE;
+
+    if (!bitmap_check_range_is(&frame_bits, frame_idx, count, true)) {
         return EBUSY;
     }
 
-    // TODO: Check if phys is a multiple of FRAME_SIZE and that its within allowed range
-
-    bitmap_clear_range(&frame_bits, phys, count);
-
+    bitmap_clear_range(&frame_bits, frame_idx, count);
     return EOK;
+}
+
+uintptr_t frames_end_address() {
+    return memory_start + FRAME_SIZE * FRAME_COUNT_MAX;
 }

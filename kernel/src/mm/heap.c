@@ -92,7 +92,7 @@ static block_head_t* init_free_blocks_list(void) {
  * Called once during system boot.
  */
 void heap_init(void) {
-    heap_header.start_address = kernel_get_image_end() + FRAME_SIZE;
+    heap_header.start_address = frames_end_address();
     heap_header.end_address = get_memory_end();
     block_head_t* init_block = init_free_blocks_list();
 
@@ -128,9 +128,12 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
     size_t original_free_size = free_block_head->size;
 
     link_t* p_next_free_block_link = free_block_head->link.next;
+    printk("aaaaa");
     list_remove(&free_block_head->link);
+    printk("bbbbbb");
 
-    size_t used_block_total_size = size_to_alloc + BLOCK_OVERHEAD;
+    size_t used_block_total_size
+            = size_to_alloc + BLOCK_OVERHEAD;
     size_t remaining_space = original_free_size + BLOCK_OVERHEAD - used_block_total_size;
 
     free_block_head->is_free = false;
@@ -183,6 +186,7 @@ void* kmalloc(size_t size) {
     }
 
     split_block(found_block, space_to_alloc);
+
     void* alloc_ptr = (void*)((uint8_t*)found_block + ALIGNED_HEAD_SIZE);
     return alloc_ptr;
 }
