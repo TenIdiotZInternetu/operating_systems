@@ -1,10 +1,28 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2019 Charles University
 
+#include <adt/bitmap.h>
 #include <adt/bits.h>
 #include <debug.h>
 #include <mm/frame.h>
+#include <mm/self.h>
 #include <types.h>
+
+#define FRAME_BITS_SIZE BITMAP_GET_STORAGE_SIZE(FRAME_COUNT_MAX)
+
+static bitmap_t frame_bits;
+static bitmap_unit_t frame_bits_data[FRAME_BITS_SIZE];
+
+uintptr_t memory_start;
+
+static uintptr_t _align(uintptr_t addr) {
+    if (addr % FRAME_SIZE == 0) {
+        return addr;
+    } else {
+        uintptr_t frames_before = (addr / FRAME_SIZE);
+        return FRAME_SIZE * (frames_before + 1);
+    }
+}
 
 /**
  * Initializes frame allocator.
@@ -12,6 +30,12 @@
  * Called once at system boot.
  */
 void frame_init(void) {
+    bitmap_init(&frame_bits, FRAME_BITS_SIZE, frame_bits_data);
+    memory_start = _align(kernel_get_image_end());
+}
+
+static uintptr_t _get_frame_addr(uint16_t frame_idx) {
+    return memory_start + frame_idx * FRAME_SIZE;
 }
 
 /**
@@ -37,12 +61,16 @@ void frame_init(void) {
  */
 errno_t frame_alloc(size_t count, uintptr_t* phys) {
     assert(count > 0);
+    size_t frame_idx;
+    errno_t err = bitmap_find_range(&frame_bits, count, false, &frame_idx);
 
-    // Feel free to remove this assertion if your allocator does not require
-    // it (see the reasoning in the documentation comment above).
-    assert(is_power_of_two(count));
+    if (err == ENOENT) {
+        return ENOMEM;
+    }
 
-    return ENOMEM;
+    *phys = _get_frame_addr(frame_idx);
+    bitmap_fill_range(&frame_bits, frame_idx, count);
+    return EOK;
 }
 
 /**
@@ -60,9 +88,13 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
 errno_t frame_free(size_t count, uintptr_t phys) {
     assert(count > 0);
 
-    // Feel free to remove this assertion if your allocator does not require
-    // it (see the reasoning in the documentation comment of frame_alloc).
-    assert(is_power_of_two(count));
+    if (!bitmap_check_range_is(&frame_bits, phys, count, true)) {
+        return EBUSY;
+    }
 
-    return ENOIMPL;
+    // TODO: Check if phys is a multiple of FRAME_SIZE and that its within allowed range
+
+    bitmap_clear_range(&frame_bits, phys, count);
+
+    return EOK;
 }

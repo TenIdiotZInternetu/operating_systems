@@ -2,6 +2,7 @@
 // Copyright 2019 Charles University
 
 #include "adt/list.h"
+#include <mm/frame.h>
 #include <mm/heap.h>
 #include <mm/self.h>
 
@@ -26,7 +27,7 @@ static size_t align(size_t size_to_alloc) {
 }
 
 static uintptr_t get_memory_end() {
-    uintptr_t start = kernel_get_image_end();
+    uintptr_t start = heap_header.start_address;
     volatile uint64_t* current = (uint64_t*)start + PROBE_STEP / sizeof(PROBE_TEST);
     *current = PROBE_TEST;
 
@@ -78,8 +79,8 @@ static block_head_t* _create_free_block(uintptr_t header_address, size_t size) {
 static block_head_t* init_free_blocks_list(void) {
     list_init(&heap_header.free_blocks);
 
-    uintptr_t first_free_block_address = kernel_get_image_end();
-    size_t first_free_block_size = (get_memory_end() - kernel_get_image_end()) - BLOCK_OVERHEAD;
+    uintptr_t first_free_block_address = heap_header.start_address;
+    size_t first_free_block_size = (get_memory_end() - heap_header.start_address) - BLOCK_OVERHEAD;
     block_head_t* p_first_block_head = _create_free_block(first_free_block_address, first_free_block_size);
     list_append(&heap_header.free_blocks, &p_first_block_head->link);
 
@@ -91,7 +92,7 @@ static block_head_t* init_free_blocks_list(void) {
  * Called once during system boot.
  */
 void heap_init(void) {
-    heap_header.start_address = kernel_get_image_end();
+    heap_header.start_address = kernel_get_image_end() + FRAME_SIZE;
     heap_header.end_address = get_memory_end();
     block_head_t* init_block = init_free_blocks_list();
 
