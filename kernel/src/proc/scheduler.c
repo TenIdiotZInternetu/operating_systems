@@ -4,6 +4,11 @@
 #include <debug.h>
 #include <proc/scheduler.h>
 
+#ifndef KERNEL_SCHEDULER_QUANTUM
+/** Scheduling quantum default. */
+#define KERNEL_SCHEDULER_QUANTUM 2000
+#endif
+
 /** Initialize support for scheduling.
  *
  * Called once at system boot.

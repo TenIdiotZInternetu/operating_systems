@@ -1,0 +1,6 @@
+# Semaphore mutex tests (optional)
+kernel sem/basic
+kernel sem/lock
+kernel sem/bad_destroy
+kernel sem/prodcons
+kernel sem/race

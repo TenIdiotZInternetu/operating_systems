@@ -1,0 +1,19 @@
+# Mutex tests with varying quantum (optional, do not run on GitLab)
+kernel mutex/basic3:kq312
+kernel mutex/basic3:kq409
+kernel mutex/basic3:kq506
+kernel mutex/basic3:kq603
+kernel mutex/basic3:kq700
+kernel mutex/basic3:kq797
+kernel mutex/basic3:kq894
+kernel mutex/basic3:kq991
+kernel mutex/race:kq311
+kernel mutex/race:kq408
+kernel mutex/race:kq505
+kernel mutex/race:kq602
+kernel mutex/race:kq699
+kernel mutex/race:kq796
+kernel mutex/race:kq893
+kernel mutex/race:kq990
+kernel mutex/race:kq1087
+kernel mutex/race:kq1184

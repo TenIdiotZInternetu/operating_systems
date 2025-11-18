@@ -2,6 +2,7 @@
 // Copyright 2019 Charles University
 
 #include <proc/context.h>
+#include <drivers/csr.h>
 
 .text
 
@@ -24,7 +25,8 @@
  *
  * We do not need to save the other registers here, because whoever needed
  * them preserved had to save them on the stack earlier. This is why the
- * context_t structure only contains the callee-saved registers.
+ * context_t structure only contains the callee-saved registers and the
+ * 'sstatus' CSR which contains the interrupt status.
  */
 .globl cpu_switch_context
 
@@ -36,11 +38,27 @@ cpu_switch_context:
     CONTEXT_SAVE_GENERAL_REGISTERS a0
 
     /*
+     * Save the CPU status (includes interrupts-enable bit).
+     */
+    csrr t0, sstatus
+    sw t0, CONTEXT_SSTATUS_OFFSET(a0)
+
+
+    /*
      * Load the general-purpose registers from the target context.
      * The register $a1 is not being restored so we can use it as
      * a base register. Note that this switches to another stack!
      */
     CONTEXT_LOAD_GENERAL_REGISTERS a1
+
+    /*
+     * Restore the 'sstatus' CSR from the target context and return to the
+     * caller. This will restore the state of the interrupts-enable bit in
+     * 'sstatus', which may enable or disable interrupts, depending on the
+     * value of the 'sstatus' register in the target context.
+     */
+    lw t0, CONTEXT_SSTATUS_OFFSET(a1)
+    csrw sstatus, t0
 
     ret
 

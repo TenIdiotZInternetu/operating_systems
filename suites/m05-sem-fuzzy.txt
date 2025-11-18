@@ -1,0 +1,11 @@
+# Semaphore tests with varying quantum (optional, do not run on GitLab)
+kernel sem/race:kq311
+kernel sem/race:kq408
+kernel sem/race:kq505
+kernel sem/race:kq602
+kernel sem/race:kq699
+kernel sem/race:kq796
+kernel sem/race:kq893
+kernel sem/race:kq990
+kernel sem/race:kq1087
+kernel sem/race:kq1184

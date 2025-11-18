@@ -11,7 +11,7 @@
  */
 
 /** Size of the context_t structure below, needed in assembler code. */
-#define CONTEXT_SIZE (14 * 4)
+#define CONTEXT_SIZE (15 * 4)
 
 #ifndef __ASSEMBLER__
 
@@ -35,6 +35,9 @@
  * function call, so if the compiler wants to preserve registers other
  * than those listed, it must save them on the stack before the call.
  * This also holds for all callers higher up in the call stack.
+ *
+ * We also save the 'sstatus' CSR to preserve the interrupt-processing
+ * state for each thread.
  */
 typedef struct {
     // Callee-saved temporaries (s0-s11 + sp).
@@ -53,6 +56,9 @@ typedef struct {
 
     unative_t sp;
     unative_t ra;
+
+    // CPU state that must be preserved for each thread separately
+    unative_t sstatus;
 } context_t;
 
 void cpu_switch_context(context_t* this_context, context_t* next_context);
@@ -78,6 +84,8 @@ void cpu_switch_context(context_t* this_context, context_t* next_context);
 
 .set CONTEXT_SP_OFFSET, 12*4
 .set CONTEXT_RA_OFFSET, 13*4
+
+.set CONTEXT_SSTATUS_OFFSET, 14*4
 
 
 /*

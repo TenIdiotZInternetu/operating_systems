@@ -1,0 +1,7 @@
+# Base mutex tests (optional)
+kernel mutex/basic1
+kernel mutex/basic2
+kernel mutex/basic3
+kernel mutex/bad_unlock
+kernel mutex/bad_destroy
+kernel mutex/race

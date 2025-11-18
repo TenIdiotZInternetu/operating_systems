@@ -129,6 +129,9 @@ def parse_test_config(test_descriptor):
             (head, tail) = list(int(s) for s in part[2:].split('-'))
             extras['kernel_cflags'].append(f'KERNEL_PADDING_HEAD={head}')
             extras['kernel_cflags'].append(f'KERNEL_PADDING_TAIL={tail}')
+        elif part.startswith('kq'):
+            quantum = int(part[2:])
+            extras['kernel_cflags'].append(f'KERNEL_SCHEDULER_QUANTUM={quantum}')
         elif part.startswith('D'):
             extras['kernel_cflags'].append(part[1:])
         else:

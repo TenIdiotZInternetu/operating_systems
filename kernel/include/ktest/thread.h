@@ -26,4 +26,18 @@
                 *(thread_out), #entry_func, #entry_arg, (flags)); \
     } while (0)
 
+static volatile int ktest_thread_blackhole = 0;
+
+static inline void ktest_thread_busy_wait(int loops) {
+    for (int i = 0; i < loops; i++) {
+        ktest_thread_blackhole += i;
+    }
+}
+
+static inline void ktest_thread_busy_wait_random(int max_wait) {
+    register uintptr_t sp __asm__("sp");
+    int rand = (sp >> 10) % max_wait;
+    ktest_thread_busy_wait(rand);
+}
+
 #endif
