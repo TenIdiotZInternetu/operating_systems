@@ -29,6 +29,7 @@ stages:
   - M02
   - M03
   - M04
+  - M05
 
 # Check C style of the code
 check-cstyle:
@@ -171,4 +172,52 @@ frame-free:
   allow_failure: false
   script:
     - ./tools/ci.sh suites/m04-frame-free.txt
+
+# M05: base-m05 (Base preemption tests (required))
+base-m05:
+  stage: M05
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-base.txt
+
+# M05: thread-fairness (Thread scheduling fairness tests (optional))
+thread-fairness:
+  stage: M05
+  needs: [base-m05]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-thread-fairness.txt
+
+# M05: mutex (Base mutex tests (optional))
+mutex:
+  stage: M05
+  needs: [base-m05]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-mutex.txt
+
+# M05: mutex-try (Tests for mutex_try_lock (optional))
+mutex-try:
+  stage: M05
+  needs: [mutex]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-mutex-try.txt
+
+# M05: sem (Semaphore mutex tests (optional))
+sem:
+  stage: M05
+  needs: [base-m05]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-sem.txt
+
+# M05: sem-try (Tests for sem_try_lock (optional))
+sem-try:
+  stage: M05
+  needs: [sem]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-sem-try.txt
 

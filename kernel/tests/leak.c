@@ -2,6 +2,7 @@
 // Copyright 2024 Charles University
 
 #include <adt/align.h>
+#include <exc.h>
 #include <ktest.h>
 #include <ktest/leak.h>
 #include <mm/frame.h>
@@ -129,7 +130,9 @@ static void* kmalloc_unsafe(size_t size, uintptr_t caller_addr) {
 
 void* kmalloc(size_t size) {
     uintptr_t caller = GET_CALLER_ADDRESS();
+    uint8_t ipl = interrupts_disable();
     void* result = kmalloc_unsafe(size, caller);
+    interrupts_restore(ipl);
     return result;
 }
 
@@ -141,7 +144,9 @@ static void kfree_unsafe(uintptr_t ptr) {
 }
 
 void kfree(void* ptr) {
+    uint8_t ipl = interrupts_disable();
     kfree_unsafe((uintptr_t)ptr);
+    interrupts_restore(ipl);
 }
 
 void frame_init(void) {
@@ -175,7 +180,9 @@ static errno_t frame_alloc_unsafe(size_t count, uintptr_t* phys, uintptr_t calle
 
 errno_t frame_alloc(size_t count, uintptr_t* phys) {
     uintptr_t caller = GET_CALLER_ADDRESS();
+    uint8_t ipl = interrupts_disable();
     errno_t result = frame_alloc_unsafe(count, phys, caller);
+    interrupts_restore(ipl);
 
     return result;
 }
@@ -188,7 +195,9 @@ static void frame_free_unsafe(size_t count, uintptr_t phys) {
 }
 
 errno_t frame_free(size_t count, uintptr_t phys) {
+    uint8_t ipl = interrupts_disable();
     frame_free_unsafe(count, phys);
+    interrupts_restore(ipl);
 
     return EOK;
 }

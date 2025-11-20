@@ -1,0 +1,4 @@
+# Base preemption tests (required)
+kernel thread/preempt
+kernel thread/interrupts
+kernel heap/threads

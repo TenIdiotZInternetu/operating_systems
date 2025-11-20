@@ -5,6 +5,11 @@
 #include <debug/code.h>
 #include <proc/scheduler.h>
 
+#ifndef KERNEL_SCHEDULER_QUANTUM
+/** Scheduling quantum default. */
+#define KERNEL_SCHEDULER_QUANTUM 2000
+#endif
+
 static scheduler_t scheduler;
 
 /**

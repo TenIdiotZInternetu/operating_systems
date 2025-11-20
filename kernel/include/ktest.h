@@ -6,6 +6,7 @@
 
 #include <debug.h>
 #include <errno.h>
+#include <exc.h>
 #include <lib/print.h>
 
 /*
@@ -29,6 +30,10 @@
         puts("\n\nTest failed.\n\n"); \
         machine_halt(); \
     } while (0)
+
+/** Prints a message for tester to signal that this test panics the kernel. */
+#define ktest_expect_panic() \
+    puts("\n\n[ ENDS WITH PANIC ]\n\n")
 
 /** Kernel test assertion.
  *
@@ -54,6 +59,34 @@
 #define ktest_assert_errno(value, last_operation_name) \
     ktest_assert((value) == EOK, "%s unexpectedly failed with %d (%s)", \
             last_operation_name, (value), errno_as_str(value))
+
+/** Kernel test assertion to ensure interrupts are enabled.
+ *
+ * We abuse the existing API and disable interrupts for a short while to
+ * check their status. We try to keep the API small thus we do not add
+ * new function for merely checking their status (the actual time the
+ * interrupts are disabled is few instructions long anyway).
+ */
+#define ktest_assert_interrupts_enabled() \
+    do { \
+        bool interrupts_are_enabled_ = interrupts_disable(); \
+        ktest_assert(interrupts_are_enabled_, "Interrupts should be enabled here."); \
+        interrupts_restore(interrupts_are_enabled_); \
+    } while (0)
+
+/** Kernel test assertion to ensure interrupts are disabled.
+ *
+ * We abuse the existing API and disable interrupts for a short while to
+ * check their status. We try to keep the API small thus we do not add
+ * new function for merely checking their status (the actual time the
+ * interrupts are disabled is few instructions long anyway).
+ */
+#define ktest_assert_interrupts_disabled() \
+    do { \
+        bool interrupts_are_enabled_ = interrupts_disable(); \
+        ktest_assert(!interrupts_are_enabled_, "Interrupts should be disabled here."); \
+        interrupts_restore(interrupts_are_enabled_); \
+    } while (0)
 
 /** Kernel test signature.
  *

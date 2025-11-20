@@ -1,0 +1,4 @@
+# Tests for mutex_try_lock (optional)
+kernel mutex/try1
+kernel mutex/try2
+kernel mutex/try_busy

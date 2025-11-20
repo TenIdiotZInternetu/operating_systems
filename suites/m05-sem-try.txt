@@ -1,0 +1,4 @@
+# Tests for sem_try_lock (optional)
+kernel sem/prodcons_double:m4096
+kernel sem/try
+kernel sem/try_busy
