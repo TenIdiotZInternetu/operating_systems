@@ -80,8 +80,16 @@ static block_head_t* init_free_blocks_list(void) {
  * Called once during system boot.
  */
 void heap_init(void) {
-    heap_header.start_address = frames_end_address();
-    heap_header.end_address = get_memory_end();
+    uintptr_t memory_start = get_memory_start();
+    uintptr_t memory_end = get_memory_end_from(memory_start);
+
+    uintptr_t heap_start = memory_start + (uintptr_t)(get_frame_region_size());
+
+    update_free_frame_count(heap_start);
+    
+    heap_header.start_address = heap_start;
+    heap_header.end_address = memory_end;
+    
     block_head_t* init_block = init_free_blocks_list();
 
     heap_header.max_size = init_block->size;
@@ -303,8 +311,4 @@ void print_heap() {
     }
 
     printk("}\n");
-}
-
-uintptr_t get_heap_start_address(void) {
-    return heap_header.start_address;
 }
