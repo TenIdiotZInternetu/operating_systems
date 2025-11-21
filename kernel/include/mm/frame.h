@@ -23,7 +23,7 @@ uintptr_t frames_end_address(void);
 
 uintptr_t get_memory_start(void);
 
-void frame_set_limit(uintptr_t heap_start_address);
+void update_free_frame_count(uintptr_t start_address);
 
 
 #endif

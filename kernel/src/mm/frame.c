@@ -27,6 +27,27 @@ static uintptr_t _align(uintptr_t addr) {
     }
 }
 
+static bool _has_free_frames(size_t n_frames) {
+    return n_frames <= frame_allocator.free_frame_count;
+}
+
+
+static size_t _get_current_usable_frame_count_from(uintptr_t start_address) {
+    return (start_address - memory_start) / FRAME_SIZE;
+}
+
+/**
+ * Updates the frame allocator's `free_frame_count` counter.
+ *
+ * The updated value is capped at `FRAME_COUNT_MAX`.
+ */
+void update_free_frame_count(uintptr_t start_address) {
+    size_t free_frames_from_heap_start = _get_current_usable_frame_count_from(start_address);
+    
+    frame_allocator.free_frame_count = (free_frames_from_heap_start < FRAME_COUNT_MAX)
+        ? free_frames_from_heap_start : FRAME_COUNT_MAX;
+}
+
 /**
  * Initializes frame allocator.
  *
