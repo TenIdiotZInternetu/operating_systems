@@ -22,6 +22,10 @@ static size_t align(size_t size_to_alloc) {
     }
 }
 
+uintptr_t get_heap_start_address(void) {
+    return heap_header.start_address;
+}
+
 
 /**
  *  Writes a block tail structure at the given memory address.
@@ -299,4 +303,8 @@ void print_heap() {
     }
 
     printk("}\n");
+}
+
+uintptr_t get_heap_start_address(void) {
+    return heap_header.start_address;
 }
