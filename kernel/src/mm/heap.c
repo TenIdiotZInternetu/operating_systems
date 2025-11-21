@@ -6,10 +6,6 @@
 #include <mm/heap.h>
 #include <mm/self.h>
 
-static const size_t PROBE_STEP = 4096;
-static const uint64_t PROBE_TEST = 0xABABAB;
-static const uint8_t MIN_BLOCK_SIZE = 8;
-
 static heap_head_t heap_header;
 
 #define ALIGNED_HEAD_SIZE align(sizeof(block_head_t))
@@ -26,21 +22,6 @@ static size_t align(size_t size_to_alloc) {
     }
 }
 
-static uintptr_t get_memory_end_from(uintptr_t start_address) {
-    volatile uint64_t* current = (volatile uint64_t*)(start_address + PROBE_STEP);
-    *current = PROBE_TEST;
-
-    while (*current == PROBE_TEST) {
-        current += PROBE_STEP / sizeof(PROBE_TEST);
-        *current = PROBE_TEST;
-    }
-
-    return (uintptr_t)current - PROBE_STEP;
-}
-
-static uintptr_t get_memory_end() {
-    return get_memory_end_from(heap_header.start_address);
-}
 
 /**
  *  Writes a block tail structure at the given memory address.
