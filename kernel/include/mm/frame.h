@@ -12,6 +12,10 @@
 #define FRAME_KSEG0_SIZE (512 * 1024 * 1024)
 #define FRAME_COUNT_MAX (FRAME_KSEG0_SIZE / FRAME_SIZE)
 
+typedef struct {
+    size_t free_frame_count;
+} frame_allocator_t;
+
 void frame_init(void);
 errno_t frame_alloc(size_t count, uintptr_t* phys);
 errno_t frame_free(size_t count, uintptr_t phys);

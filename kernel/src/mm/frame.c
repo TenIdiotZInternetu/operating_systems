@@ -15,6 +15,9 @@ static bitmap_unit_t frame_bits_data[FRAME_BITS_SIZE];
 
 uintptr_t memory_start;
 
+static frame_allocator_t frame_allocator;
+
+
 static uintptr_t _align(uintptr_t addr) {
     if (addr % FRAME_SIZE == 0) {
         return addr;
