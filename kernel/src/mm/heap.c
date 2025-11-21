@@ -68,7 +68,7 @@ static block_head_t* init_free_blocks_list(void) {
 
     uintptr_t first_free_block_address = heap_header.start_address;
     size_t first_free_block_size = (heap_header.end_address - heap_header.start_address) - BLOCK_OVERHEAD;
-    
+
     block_head_t* p_first_block_head = _create_free_block(first_free_block_address, first_free_block_size);
     list_append(&heap_header.free_blocks, &p_first_block_head->link);
 
@@ -140,7 +140,6 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
     free_block_head->size = size_to_alloc;
     assert(free_block_head->size % MIN_BLOCK_SIZE == 0);
 
-
     uintptr_t used_block_tail_address = (uintptr_t)free_block_head + ALIGNED_HEAD_SIZE + size_to_alloc;
     _write_block_tail(used_block_tail_address, free_block_head);
 
@@ -211,7 +210,7 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
     if ((uintptr_t)freed_block <= heap_header.start_address) {
         return freed_block;
     }
-    
+
     // Get to prev block through its tail
     block_tail_t* prev_tail = (block_tail_t*)((uint8_t*)freed_block - ALIGNED_TAIL_SIZE);
     block_head_t* prev_head = *prev_tail;
@@ -232,11 +231,11 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
  */
 static void coalesce_right(block_head_t* freed_block) {
     uintptr_t next_address = (uintptr_t)freed_block + BLOCK_OVERHEAD + freed_block->size;
-    
+
     if (next_address >= heap_header.end_address) {
         return;
     }
-    
+
     // Get to next block by adding the address and size of the freed block
     block_head_t* next_head = (block_head_t*)next_address;
 
