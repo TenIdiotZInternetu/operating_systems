@@ -67,7 +67,8 @@ static block_head_t* init_free_blocks_list(void) {
     list_init(&heap_header.free_blocks);
 
     uintptr_t first_free_block_address = heap_header.start_address;
-    size_t first_free_block_size = (get_memory_end() - heap_header.start_address) - BLOCK_OVERHEAD;
+    size_t first_free_block_size = (heap_header.end_address - heap_header.start_address) - BLOCK_OVERHEAD;
+    
     block_head_t* p_first_block_head = _create_free_block(first_free_block_address, first_free_block_size);
     list_append(&heap_header.free_blocks, &p_first_block_head->link);
 
@@ -123,17 +124,14 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
     size_t original_free_size = free_block_head->size;
 
     link_t* p_next_free_block_link = free_block_head->link.next;
-    printk("aaaaa");
     list_remove(&free_block_head->link);
-    printk("bbbbbb");
 
-    size_t used_block_total_size
-            = size_to_alloc + BLOCK_OVERHEAD;
+    size_t used_block_total_size = size_to_alloc + BLOCK_OVERHEAD;
     size_t remaining_space = original_free_size + BLOCK_OVERHEAD - used_block_total_size;
 
     free_block_head->is_free = false;
 
-    // If remainder is too small to create a new free block, allocate the entire block to avoid fragmentation
+    // If remainder is too small, allocate entire block
     if (remaining_space < BLOCK_OVERHEAD + MIN_BLOCK_SIZE) {
         heap_header.free_size -= original_free_size;
         return;
@@ -141,6 +139,7 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
 
     free_block_head->size = size_to_alloc;
     assert(free_block_head->size % MIN_BLOCK_SIZE == 0);
+
 
     uintptr_t used_block_tail_address = (uintptr_t)free_block_head + ALIGNED_HEAD_SIZE + size_to_alloc;
     _write_block_tail(used_block_tail_address, free_block_head);
