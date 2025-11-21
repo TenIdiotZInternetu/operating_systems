@@ -84,7 +84,9 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
 errno_t frame_free(size_t count, uintptr_t phys) {
     assert(count > 0);
 
-    // TODO: Check if phys is a multiple of FRAME_SIZE and that its within allowed range
+    if (phys < memory_start || phys % FRAME_SIZE != 0) {
+        return ENOENT;
+    }
 
     size_t frame_idx = (phys - memory_start) / FRAME_SIZE;
 
