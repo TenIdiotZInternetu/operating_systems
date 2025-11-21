@@ -26,9 +26,8 @@ static size_t align(size_t size_to_alloc) {
     }
 }
 
-static uintptr_t get_memory_end() {
-    uintptr_t start = heap_header.start_address;
-    volatile uint64_t* current = (uint64_t*)start + PROBE_STEP / sizeof(PROBE_TEST);
+static uintptr_t get_memory_end_from(uintptr_t start_address) {
+    volatile uint64_t* current = (volatile uint64_t*)(start_address + PROBE_STEP);
     *current = PROBE_TEST;
 
     while (*current == PROBE_TEST) {
