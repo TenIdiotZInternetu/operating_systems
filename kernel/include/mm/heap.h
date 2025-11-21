@@ -29,4 +29,6 @@ void kfree(void* ptr);
 heap_head_t get_heap_info(void);
 void print_heap(void);
 
+uintptr_t get_heap_start_address(void);
+
 #endif

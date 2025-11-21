@@ -7,6 +7,8 @@
 #include <mm/frame.h>
 #include <mm/self.h>
 #include <types.h>
+#include <mm/self.h>
+#include <mm/heap.h>
 
 #define FRAME_BITS_SIZE BITMAP_GET_STORAGE_SIZE(FRAME_COUNT_MAX)
 
@@ -26,6 +28,27 @@ static uintptr_t _align(uintptr_t addr) {
         return FRAME_SIZE * (frames_before + 1);
     }
 }
+
+uintptr_t get_memory_end_from(uintptr_t start_address) {
+    volatile uint64_t* current = (volatile uint64_t*)(start_address + PROBE_STEP);
+    *current = PROBE_TEST;
+
+    while (*current == PROBE_TEST) {
+        current += PROBE_STEP / sizeof(PROBE_TEST);
+        *current = PROBE_TEST;
+    }
+
+    return (uintptr_t)current - PROBE_STEP;
+}
+
+uintptr_t get_memory_start(void) {
+    return memory_start;
+}
+
+uintptr_t get_memory_end(void) {
+    return get_memory_end_from(get_heap_start_address());
+}
+
 
 static bool _has_free_frames(size_t n_frames) {
     return n_frames <= frame_allocator.free_frame_count;
@@ -124,8 +147,4 @@ errno_t frame_free(size_t count, uintptr_t phys) {
 
 uintptr_t frames_end_address() {
     return memory_start + FRAME_SIZE * FRAME_COUNT_MAX;
-}
-
-uintptr_t get_memory_start(void) {
-    return memory_start;
 }
