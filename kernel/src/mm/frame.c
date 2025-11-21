@@ -71,11 +71,20 @@ void update_free_frame_count(uintptr_t start_address) {
         ? free_frames_from_heap_start : FRAME_COUNT_MAX;
 }
 
+size_t get_frame_region_size(void) {
+    uintptr_t memory_start = get_memory_start();
+    uintptr_t memory_end = get_memory_end_from(memory_start);
+
+    size_t available_size = (size_t)(memory_end - memory_start);
+    
+    return available_size / FRAME_REGION_MEMORY_DIVISOR;
+}
+
 /**
- * Initializes frame allocator.
- *
- * Called once at system boot.
- */
+   * Initializes frame allocator.
+   *
+   * Called once at system boot.
+   */
 void frame_init(void) {
     bitmap_init(&frame_bits, FRAME_BITS_SIZE, frame_bits_data);
     memory_start = _align(kernel_get_image_end());

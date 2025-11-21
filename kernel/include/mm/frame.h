@@ -33,5 +33,6 @@ uintptr_t get_memory_end(void);
 
 void update_free_frame_count(uintptr_t start_address);
 
+size_t get_frame_region_size(void);
 
 #endif
