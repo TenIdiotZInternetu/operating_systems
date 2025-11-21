@@ -17,4 +17,9 @@ errno_t frame_alloc(size_t count, uintptr_t* phys);
 errno_t frame_free(size_t count, uintptr_t phys);
 uintptr_t frames_end_address(void);
 
+uintptr_t get_memory_start(void);
+
+void frame_set_limit(uintptr_t heap_start_address);
+
+
 #endif

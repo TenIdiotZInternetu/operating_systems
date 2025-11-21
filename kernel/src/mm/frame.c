@@ -101,3 +101,7 @@ errno_t frame_free(size_t count, uintptr_t phys) {
 uintptr_t frames_end_address() {
     return memory_start + FRAME_SIZE * FRAME_COUNT_MAX;
 }
+
+uintptr_t get_memory_start(void) {
+    return memory_start;
+}
