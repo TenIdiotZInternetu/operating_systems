@@ -39,6 +39,10 @@ static uintptr_t get_memory_end() {
     return (uintptr_t)current - PROBE_STEP;
 }
 
+static uintptr_t get_memory_end() {
+    return get_memory_end_from(heap_header.start_address);
+}
+
 /**
  *  Writes a block tail structure at the given memory address.
  *
