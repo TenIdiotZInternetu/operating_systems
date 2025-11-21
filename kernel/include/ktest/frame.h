@@ -7,7 +7,7 @@
 #define ktest_check_frame_alloc_result(count, addr) \
     do { \
         uintptr_t __addr = (uintptr_t)addr; \
-        unsigned long long __addr_end = __addr + (count) * FRAME_SIZE; \
+        unsigned long long __addr_end = __addr + (count)*FRAME_SIZE; \
         ktest_assert((__addr >= 0x80000000) && (__addr < 0xA0000000), \
                 #addr " (0x%x) not in [0x80000000, 0xA0000000)", __addr); \
         ktest_assert((__addr_end >= 0x80000000) && (__addr_end < 0xA0000000), \

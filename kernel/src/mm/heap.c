@@ -26,7 +26,6 @@ uintptr_t get_heap_start_address(void) {
     return heap_header.start_address;
 }
 
-
 /**
  *  Writes a block tail structure at the given memory address.
  *
@@ -86,10 +85,10 @@ void heap_init(void) {
     uintptr_t heap_start = memory_start + (uintptr_t)(get_frame_region_size());
 
     update_free_frame_count(heap_start);
-    
+
     heap_header.start_address = heap_start;
     heap_header.end_address = memory_end;
-    
+
     block_head_t* init_block = init_free_blocks_list();
 
     heap_header.max_size = init_block->size;

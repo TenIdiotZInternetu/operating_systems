@@ -5,10 +5,9 @@
 #include <adt/bits.h>
 #include <debug.h>
 #include <mm/frame.h>
+#include <mm/heap.h>
 #include <mm/self.h>
 #include <types.h>
-#include <mm/self.h>
-#include <mm/heap.h>
 
 #define FRAME_BITS_SIZE BITMAP_GET_STORAGE_SIZE(FRAME_COUNT_MAX)
 
@@ -18,7 +17,6 @@ static bitmap_unit_t frame_bits_data[FRAME_BITS_SIZE];
 uintptr_t memory_start;
 
 static frame_allocator_t frame_allocator;
-
 
 static uintptr_t _align(uintptr_t addr) {
     if (addr % FRAME_SIZE == 0) {
@@ -49,11 +47,9 @@ uintptr_t get_memory_end(void) {
     return get_memory_end_from(get_heap_start_address());
 }
 
-
 static bool _has_free_frames(size_t n_frames) {
     return n_frames <= frame_allocator.free_frame_count;
 }
-
 
 static size_t _get_current_usable_frame_count_from(uintptr_t start_address) {
     return (start_address - memory_start) / FRAME_SIZE;
@@ -66,9 +62,10 @@ static size_t _get_current_usable_frame_count_from(uintptr_t start_address) {
  */
 void update_free_frame_count(uintptr_t start_address) {
     size_t free_frames_from_heap_start = _get_current_usable_frame_count_from(start_address);
-    
+
     frame_allocator.free_frame_count = (free_frames_from_heap_start < FRAME_COUNT_MAX)
-        ? free_frames_from_heap_start : FRAME_COUNT_MAX;
+            ? free_frames_from_heap_start
+            : FRAME_COUNT_MAX;
 }
 
 size_t get_frame_region_size(void) {
@@ -76,15 +73,15 @@ size_t get_frame_region_size(void) {
     uintptr_t memory_end = get_memory_end_from(memory_start);
 
     size_t available_size = (size_t)(memory_end - memory_start);
-    
+
     return available_size / FRAME_REGION_MEMORY_DIVISOR;
 }
 
 /**
-   * Initializes frame allocator.
-   *
-   * Called once at system boot.
-   */
+ * Initializes frame allocator.
+ *
+ * Called once at system boot.
+ */
 void frame_init(void) {
     bitmap_init(&frame_bits, FRAME_BITS_SIZE, frame_bits_data);
     memory_start = _align(kernel_get_image_end());
