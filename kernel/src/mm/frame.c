@@ -84,7 +84,7 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
     size_t frame_idx;
     errno_t err = bitmap_find_range(&frame_bits, count, false, &frame_idx);
 
-    if (err == ENOENT) {
+    if (err == ENOENT || !_has_free_frames(frame_idx + count)) {
         return ENOMEM;
     }
 
