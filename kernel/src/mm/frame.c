@@ -28,7 +28,7 @@ static uintptr_t _align(uintptr_t addr) {
     }
 }
 
-uintptr_t get_memory_end_from(uintptr_t start_address) {
+static uintptr_t _find_memory_end_from(uintptr_t start_address) {
     volatile uint64_t* current = (volatile uint64_t*)(start_address + PROBE_STEP);
     *current = PROBE_TEST;
 
@@ -86,17 +86,14 @@ size_t get_frame_region_size(void) {
  */
 void frame_init(void) {
     memory_start = _align(kernel_get_image_end());
-    memory_end = get_memory_end_from(get_memory_start());
+    memory_end = _find_memory_end_from(get_memory_start());
     size_t frame_region_size = get_frame_region_size();
     size_t frame_count = frame_region_size / FRAME_SIZE;
-    // printk("%d\n", frame_count);
 
     bitmap_init(&frame_bits, frame_count, (uint8_t*)memory_start);
     size_t bitmap_size_in_frames = _align(frame_bits.length) / FRAME_SIZE;
     assert(bitmap_size_in_frames > 0);
-    // printk("%d\n", bitmap_size_in_frames);
     bitmap_fill_range(&frame_bits, 0, bitmap_size_in_frames);
-    // print_bitmap(&frame_bits);
     frame_allocator.free_frame_count -= bitmap_size_in_frames;
 }
 
@@ -126,7 +123,7 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
     size_t frame_idx;
     errno_t err = bitmap_find_range(&frame_bits, count, false, &frame_idx);
 
-    if (err == ENOENT || !_has_free_frames(frame_idx + count)) {
+    if (!_has_free_frames(count) || err == ENOENT) {
         return ENOMEM;
     }
 
@@ -150,7 +147,6 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
  */
 errno_t frame_free(size_t count, uintptr_t phys) {
     assert(count > 0);
-    assert(phys % FRAME_SIZE == 0);
 
     if (phys < memory_start || phys % FRAME_SIZE != 0) {
         return ENOENT;
@@ -165,9 +161,4 @@ errno_t frame_free(size_t count, uintptr_t phys) {
     bitmap_clear_range(&frame_bits, frame_idx, count);
     frame_allocator.free_frame_count += count;
     return EOK;
-}
-
-uintptr_t frames_end_address() {
-    size_t max_frame_count = frame_bits.length;
-    return memory_start + FRAME_SIZE * max_frame_count;
 }

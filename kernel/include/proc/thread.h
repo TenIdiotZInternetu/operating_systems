@@ -40,7 +40,7 @@ struct thread {
     thread_entry_func_t entry_func;
     context_t context;
     thread_state_t state;
-    void* stack_location;
+    uintptr_t stack_location;
     void* return_value;
     void* first_arg;
     thread_t* joined_by_thread;
