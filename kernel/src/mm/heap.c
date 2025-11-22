@@ -207,10 +207,6 @@ static void coalesce(block_head_t* left_block, block_head_t* right_block) {
  * @return Pointer to the resulting free block
  */
 static block_head_t* coalesce_left(block_head_t* freed_block) {
-    if ((uintptr_t)freed_block <= heap_header.start_address) {
-        return freed_block;
-    }
-
     // Get to prev block through its tail
     block_tail_t* prev_tail = (block_tail_t*)((uint8_t*)freed_block - ALIGNED_TAIL_SIZE);
     block_head_t* prev_head = *prev_tail;
@@ -230,14 +226,8 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
  * @param used_block Block to be coalesced
  */
 static void coalesce_right(block_head_t* freed_block) {
-    uintptr_t next_address = (uintptr_t)freed_block + BLOCK_OVERHEAD + freed_block->size;
-
-    if (next_address >= heap_header.end_address) {
-        return;
-    }
-
     // Get to next block by adding the address and size of the freed block
-    block_head_t* next_head = (block_head_t*)next_address;
+    block_head_t* next_head = (block_head_t*)((uint8_t*)freed_block + BLOCK_OVERHEAD + freed_block->size);
 
     if (next_head->is_free) {
         coalesce(freed_block, next_head);
