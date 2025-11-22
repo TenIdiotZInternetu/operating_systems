@@ -22,8 +22,8 @@ void threads_init(void) { }
  * @param thread Thread for which we are initializing the stack
  */
 static void thread_init_stack(thread_t* thread) {
-    uintptr_t stack_ptr_unaligned = (uintptr_t)thread->stack_location + THREAD_STACK_SIZE;
-    uintptr_t stack_ptr = stack_ptr_unaligned - (stack_ptr_unaligned % ABI_STACK_ALIGNMENT);
+    assert(THREAD_STACK_SIZE % ABI_STACK_ALIGNMENT == 0);
+    uintptr_t stack_ptr = (uintptr_t)thread->stack_location + THREAD_STACK_SIZE;
     thread->context.sp = stack_ptr;
 }
 
@@ -63,8 +63,9 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
         return ENOMEM;
     }
 
-    p_thread->stack_location = kmalloc(THREAD_STACK_SIZE);
-    if (p_thread->stack_location == NULL) {
+    assert(THREAD_STACK_SIZE % FRAME_SIZE == 0);
+    errno_t alloc_success = frame_alloc(THREAD_STACK_SIZE_IN_FRAMES, (uintptr_t*)&p_thread->stack_location);
+    if (alloc_success != EOK) {
         kfree(p_thread);
         return ENOMEM;
     }
@@ -246,7 +247,7 @@ errno_t thread_join(thread_t* thread, void** retval) {
     }
 
     list_remove(&thread->link);
-    kfree(thread->stack_location);
+    frame_free(THREAD_STACK_SIZE_IN_FRAMES, (uintptr_t)thread->stack_location);
     kfree(thread);
     return EOK;
 }
@@ -292,7 +293,7 @@ errno_t thread_kill(thread_t* thread) {
     }
 
     scheduler_remove_thread(thread);
-    kfree(thread->stack_location);
+    frame_free(THREAD_STACK_SIZE_IN_FRAMES, (uintptr_t)thread->stack_location);
     thread->state = KILLED;
 
     if (thread == scheduler_get_current_thread()) {

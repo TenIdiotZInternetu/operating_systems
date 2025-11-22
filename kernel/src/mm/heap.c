@@ -67,7 +67,7 @@ static block_head_t* init_free_blocks_list(void) {
     list_init(&heap_header.free_blocks);
 
     uintptr_t first_free_block_address = heap_header.start_address;
-    size_t first_free_block_size = (get_memory_end() - heap_header.start_address) - BLOCK_OVERHEAD;
+    size_t first_free_block_size = (heap_header.end_address - heap_header.start_address) - BLOCK_OVERHEAD;
     block_head_t* p_first_block_head = _create_free_block(first_free_block_address, first_free_block_size);
     list_append(&heap_header.free_blocks, &p_first_block_head->link);
 
@@ -80,9 +80,10 @@ static block_head_t* init_free_blocks_list(void) {
  */
 void heap_init(void) {
     uintptr_t memory_start = get_memory_start();
-    uintptr_t memory_end = get_memory_end_from(memory_start);
+    uintptr_t memory_end = get_memory_end();
 
     uintptr_t heap_start = memory_start + (uintptr_t)(get_frame_region_size());
+    assert(heap_start % MIN_BLOCK_SIZE == 0);
 
     update_free_frame_count(heap_start);
 
@@ -123,9 +124,7 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
     size_t original_free_size = free_block_head->size;
 
     link_t* p_next_free_block_link = free_block_head->link.next;
-    printk("aaaaa");
     list_remove(&free_block_head->link);
-    printk("bbbbbb");
 
     size_t used_block_total_size
             = size_to_alloc + BLOCK_OVERHEAD;

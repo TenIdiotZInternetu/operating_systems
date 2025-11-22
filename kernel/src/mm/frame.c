@@ -12,9 +12,10 @@
 #define FRAME_BITS_SIZE BITMAP_GET_STORAGE_SIZE(FRAME_COUNT_MAX)
 
 static bitmap_t frame_bits;
-static bitmap_unit_t frame_bits_data[FRAME_BITS_SIZE];
+// static bitmap_unit_t frame_bits_data[FRAME_BITS_SIZE];
 
 uintptr_t memory_start;
+uintptr_t memory_end;
 
 static frame_allocator_t frame_allocator;
 
@@ -44,7 +45,7 @@ uintptr_t get_memory_start(void) {
 }
 
 uintptr_t get_memory_end(void) {
-    return get_memory_end_from(get_heap_start_address());
+    return memory_end;
 }
 
 static bool _has_free_frames(size_t n_frames) {
@@ -63,14 +64,15 @@ static size_t _get_current_usable_frame_count_from(uintptr_t start_address) {
 void update_free_frame_count(uintptr_t start_address) {
     size_t free_frames_from_heap_start = _get_current_usable_frame_count_from(start_address);
 
-    frame_allocator.free_frame_count = (free_frames_from_heap_start < FRAME_COUNT_MAX)
+    size_t max_frame_count = frame_bits.length;
+    frame_allocator.free_frame_count = (free_frames_from_heap_start < max_frame_count)
             ? free_frames_from_heap_start
-            : FRAME_COUNT_MAX;
+            : max_frame_count;
 }
 
 size_t get_frame_region_size(void) {
     uintptr_t memory_start = get_memory_start();
-    uintptr_t memory_end = get_memory_end_from(memory_start);
+    uintptr_t memory_end = get_memory_end();
 
     size_t available_size = (size_t)(memory_end - memory_start);
 
@@ -83,8 +85,19 @@ size_t get_frame_region_size(void) {
  * Called once at system boot.
  */
 void frame_init(void) {
-    bitmap_init(&frame_bits, FRAME_BITS_SIZE, frame_bits_data);
     memory_start = _align(kernel_get_image_end());
+    memory_end = get_memory_end_from(get_memory_start());
+    size_t frame_region_size = get_frame_region_size();
+    size_t frame_count = frame_region_size / FRAME_SIZE;
+    // printk("%d\n", frame_count); 
+
+    bitmap_init(&frame_bits, frame_count, (uint8_t*)memory_start);
+    size_t bitmap_size_in_frames = _align(frame_bits.length) / FRAME_SIZE;
+    assert(bitmap_size_in_frames > 0);
+    // printk("%d\n", bitmap_size_in_frames);
+    bitmap_fill_range(&frame_bits, 0, bitmap_size_in_frames);
+    // print_bitmap(&frame_bits);
+    frame_allocator.free_frame_count -= bitmap_size_in_frames;
 }
 
 /**
@@ -119,6 +132,7 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
 
     *phys = memory_start + frame_idx * FRAME_SIZE;
     bitmap_fill_range(&frame_bits, frame_idx, count);
+    frame_allocator.free_frame_count -= count;
     return EOK;
 }
 
@@ -136,6 +150,7 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
  */
 errno_t frame_free(size_t count, uintptr_t phys) {
     assert(count > 0);
+    assert(phys % FRAME_SIZE == 0);
 
     if (phys < memory_start || phys % FRAME_SIZE != 0) {
         return ENOENT;
@@ -148,9 +163,11 @@ errno_t frame_free(size_t count, uintptr_t phys) {
     }
 
     bitmap_clear_range(&frame_bits, frame_idx, count);
+    frame_allocator.free_frame_count += count;
     return EOK;
 }
 
 uintptr_t frames_end_address() {
-    return memory_start + FRAME_SIZE * FRAME_COUNT_MAX;
+    size_t max_frame_count = frame_bits.length;
+    return memory_start + FRAME_SIZE * max_frame_count;
 }

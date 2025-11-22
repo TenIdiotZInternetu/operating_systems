@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <proc/context.h>
 #include <types.h>
+#include <mm/frame.h>
 
 /** Thread stack size.
  *
@@ -15,6 +16,8 @@
  * difficult to debug (and difficult to detect too).
  */
 #define THREAD_STACK_SIZE 4096
+
+#define THREAD_STACK_SIZE_IN_FRAMES THREAD_STACK_SIZE / FRAME_SIZE
 
 /** Max length of a thread name (excluding the terminating zero). */
 #define THREAD_NAME_MAX_LENGTH 31
