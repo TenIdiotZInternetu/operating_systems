@@ -6,9 +6,9 @@
 
 #include <adt/list.h>
 #include <errno.h>
+#include <mm/frame.h>
 #include <proc/context.h>
 #include <types.h>
-#include <mm/frame.h>
 
 /** Thread stack size.
  *

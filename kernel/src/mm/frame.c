@@ -89,7 +89,7 @@ void frame_init(void) {
     memory_end = get_memory_end_from(get_memory_start());
     size_t frame_region_size = get_frame_region_size();
     size_t frame_count = frame_region_size / FRAME_SIZE;
-    // printk("%d\n", frame_count); 
+    // printk("%d\n", frame_count);
 
     bitmap_init(&frame_bits, frame_count, (uint8_t*)memory_start);
     size_t bitmap_size_in_frames = _align(frame_bits.length) / FRAME_SIZE;
