@@ -2,12 +2,9 @@
 // Copyright 2019 Charles University
 
 #include "adt/list.h"
+#include <mm/frame.h>
 #include <mm/heap.h>
 #include <mm/self.h>
-
-static const size_t PROBE_STEP = 4096;
-static const uint64_t PROBE_TEST = 0xABABAB;
-static const uint8_t MIN_BLOCK_SIZE = 8;
 
 static heap_head_t heap_header;
 
@@ -25,17 +22,8 @@ static size_t align(size_t size_to_alloc) {
     }
 }
 
-static uintptr_t get_memory_end() {
-    uintptr_t start = kernel_get_image_end();
-    volatile uint64_t* current = (uint64_t*)start + PROBE_STEP / sizeof(PROBE_TEST);
-    *current = PROBE_TEST;
-
-    while (*current == PROBE_TEST) {
-        current += PROBE_STEP / sizeof(PROBE_TEST);
-        *current = PROBE_TEST;
-    }
-
-    return (uintptr_t)current - PROBE_STEP;
+uintptr_t get_heap_start_address(void) {
+    return heap_header.start_address;
 }
 
 /**
@@ -78,8 +66,8 @@ static block_head_t* _create_free_block(uintptr_t header_address, size_t size) {
 static block_head_t* init_free_blocks_list(void) {
     list_init(&heap_header.free_blocks);
 
-    uintptr_t first_free_block_address = kernel_get_image_end();
-    size_t first_free_block_size = (get_memory_end() - kernel_get_image_end()) - BLOCK_OVERHEAD;
+    uintptr_t first_free_block_address = heap_header.start_address;
+    size_t first_free_block_size = (heap_header.end_address - heap_header.start_address) - BLOCK_OVERHEAD;
     block_head_t* p_first_block_head = _create_free_block(first_free_block_address, first_free_block_size);
     list_append(&heap_header.free_blocks, &p_first_block_head->link);
 
@@ -91,8 +79,14 @@ static block_head_t* init_free_blocks_list(void) {
  * Called once during system boot.
  */
 void heap_init(void) {
-    heap_header.start_address = kernel_get_image_end();
+    uintptr_t heap_start = get_memory_start() + (uintptr_t)(get_frame_region_size());
+
+    update_free_frame_count(heap_start);
+
+    heap_header.start_address = heap_start;
+    assert(heap_header.start_address % MIN_BLOCK_SIZE == 0);
     heap_header.end_address = get_memory_end();
+
     block_head_t* init_block = init_free_blocks_list();
 
     heap_header.max_size = init_block->size;
@@ -134,7 +128,7 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
 
     free_block_head->is_free = false;
 
-    // If remainder is too small to create a new free block, allocate the entire block to avoid fragmentation
+    // If remainder is too small, allocate entire block
     if (remaining_space < BLOCK_OVERHEAD + MIN_BLOCK_SIZE) {
         heap_header.free_size -= original_free_size;
         return;
@@ -182,6 +176,7 @@ void* kmalloc(size_t size) {
     }
 
     split_block(found_block, space_to_alloc);
+
     void* alloc_ptr = (void*)((uint8_t*)found_block + ALIGNED_HEAD_SIZE);
     return alloc_ptr;
 }

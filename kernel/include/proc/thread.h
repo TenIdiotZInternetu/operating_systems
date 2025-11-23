@@ -6,6 +6,7 @@
 
 #include <adt/list.h>
 #include <errno.h>
+#include <mm/frame.h>
 #include <proc/context.h>
 #include <types.h>
 
@@ -15,6 +16,8 @@
  * difficult to debug (and difficult to detect too).
  */
 #define THREAD_STACK_SIZE 4096
+
+#define THREAD_STACK_SIZE_IN_FRAMES THREAD_STACK_SIZE / FRAME_SIZE
 
 /** Max length of a thread name (excluding the terminating zero). */
 #define THREAD_NAME_MAX_LENGTH 31
@@ -37,7 +40,7 @@ struct thread {
     thread_entry_func_t entry_func;
     context_t context;
     thread_state_t state;
-    void* stack_location;
+    uintptr_t stack_location;
     void* return_value;
     void* first_arg;
     thread_t* joined_by_thread;

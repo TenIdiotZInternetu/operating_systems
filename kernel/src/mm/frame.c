@@ -1,10 +1,83 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2019 Charles University
 
+#include <adt/bitmap.h>
 #include <adt/bits.h>
 #include <debug.h>
 #include <mm/frame.h>
+#include <mm/heap.h>
+#include <mm/self.h>
 #include <types.h>
+
+#define FRAME_BITS_SIZE BITMAP_GET_STORAGE_SIZE(FRAME_COUNT_MAX)
+
+static bitmap_t frame_bits;
+// static bitmap_unit_t frame_bits_data[FRAME_BITS_SIZE];
+
+uintptr_t memory_start;
+uintptr_t memory_end;
+
+static frame_allocator_t frame_allocator;
+
+static uintptr_t _align(uintptr_t addr) {
+    if (addr % FRAME_SIZE == 0) {
+        return addr;
+    } else {
+        uintptr_t frames_before = (addr / FRAME_SIZE);
+        return FRAME_SIZE * (frames_before + 1);
+    }
+}
+
+static uintptr_t _find_memory_end_from(uintptr_t start_address) {
+    volatile uint64_t* current = (volatile uint64_t*)(start_address + PROBE_STEP);
+    *current = PROBE_TEST;
+
+    while (*current == PROBE_TEST) {
+        current += PROBE_STEP / sizeof(PROBE_TEST);
+        *current = PROBE_TEST;
+    }
+
+    return (uintptr_t)current - PROBE_STEP;
+}
+
+uintptr_t get_memory_start(void) {
+    return memory_start;
+}
+
+uintptr_t get_memory_end(void) {
+    return memory_end;
+}
+
+static bool _has_free_frames(size_t n_frames) {
+    return n_frames <= frame_allocator.free_frame_count;
+}
+
+static size_t _get_current_usable_frame_count_from(uintptr_t start_address) {
+    return (start_address - memory_start) / FRAME_SIZE;
+}
+
+/**
+ * Updates the frame allocator's `free_frame_count` counter.
+ *
+ * The updated value is capped at `FRAME_COUNT_MAX`.
+ */
+void update_free_frame_count(uintptr_t start_address) {
+    size_t free_frames_from_heap_start = _get_current_usable_frame_count_from(start_address);
+
+    size_t max_frame_count = frame_bits.length;
+    frame_allocator.free_frame_count = (free_frames_from_heap_start < max_frame_count)
+            ? free_frames_from_heap_start
+            : max_frame_count;
+}
+
+size_t get_frame_region_size(void) {
+    uintptr_t memory_start = get_memory_start();
+    uintptr_t memory_end = get_memory_end();
+
+    size_t available_size = (size_t)(memory_end - memory_start);
+
+    return available_size / FRAME_REGION_MEMORY_DIVISOR;
+}
 
 /**
  * Initializes frame allocator.
@@ -12,6 +85,16 @@
  * Called once at system boot.
  */
 void frame_init(void) {
+    memory_start = _align(kernel_get_image_end());
+    memory_end = _find_memory_end_from(get_memory_start());
+    size_t frame_region_size = get_frame_region_size();
+    size_t frame_count = frame_region_size / FRAME_SIZE;
+
+    bitmap_init(&frame_bits, frame_count, (uint8_t*)memory_start);
+    size_t bitmap_size_in_frames = _align(frame_bits.length) / FRAME_SIZE;
+    assert(bitmap_size_in_frames > 0);
+    bitmap_fill_range(&frame_bits, 0, bitmap_size_in_frames);
+    frame_allocator.free_frame_count -= bitmap_size_in_frames;
 }
 
 /**
@@ -37,12 +120,17 @@ void frame_init(void) {
  */
 errno_t frame_alloc(size_t count, uintptr_t* phys) {
     assert(count > 0);
+    size_t frame_idx;
+    errno_t err = bitmap_find_range(&frame_bits, count, false, &frame_idx);
 
-    // Feel free to remove this assertion if your allocator does not require
-    // it (see the reasoning in the documentation comment above).
-    assert(is_power_of_two(count));
+    if (!_has_free_frames(count) || err == ENOENT) {
+        return ENOMEM;
+    }
 
-    return ENOMEM;
+    *phys = memory_start + frame_idx * FRAME_SIZE;
+    bitmap_fill_range(&frame_bits, frame_idx, count);
+    frame_allocator.free_frame_count -= count;
+    return EOK;
 }
 
 /**
@@ -60,9 +148,17 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
 errno_t frame_free(size_t count, uintptr_t phys) {
     assert(count > 0);
 
-    // Feel free to remove this assertion if your allocator does not require
-    // it (see the reasoning in the documentation comment of frame_alloc).
-    assert(is_power_of_two(count));
+    if (phys < memory_start || phys % FRAME_SIZE != 0) {
+        return ENOENT;
+    }
 
-    return ENOIMPL;
+    size_t frame_idx = (phys - memory_start) / FRAME_SIZE;
+
+    if (!bitmap_check_range_is(&frame_bits, frame_idx, count, true)) {
+        return EBUSY;
+    }
+
+    bitmap_clear_range(&frame_bits, frame_idx, count);
+    frame_allocator.free_frame_count += count;
+    return EOK;
 }
