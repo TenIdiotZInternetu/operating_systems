@@ -68,7 +68,6 @@ static block_head_t* init_free_blocks_list(void) {
 
     uintptr_t first_free_block_address = heap_header.start_address;
     size_t first_free_block_size = (heap_header.end_address - heap_header.start_address) - BLOCK_OVERHEAD;
-
     block_head_t* p_first_block_head = _create_free_block(first_free_block_address, first_free_block_size);
     list_append(&heap_header.free_blocks, &p_first_block_head->link);
 
@@ -80,15 +79,13 @@ static block_head_t* init_free_blocks_list(void) {
  * Called once during system boot.
  */
 void heap_init(void) {
-    uintptr_t memory_start = get_memory_start();
-    uintptr_t memory_end = get_memory_end_from(memory_start);
-
-    uintptr_t heap_start = memory_start + (uintptr_t)(get_frame_region_size());
+    uintptr_t heap_start = get_memory_start() + (uintptr_t)(get_frame_region_size());
 
     update_free_frame_count(heap_start);
 
     heap_header.start_address = heap_start;
-    heap_header.end_address = memory_end;
+    assert(heap_header.start_address % MIN_BLOCK_SIZE == 0);
+    heap_header.end_address = get_memory_end();
 
     block_head_t* init_block = init_free_blocks_list();
 

@@ -165,7 +165,7 @@ void print_bitmap(bitmap_t* bitmap) {
 }
 
 void print_bitmap_range(bitmap_t* bitmap, size_t start, size_t count) {
-    assert(start + count < bitmap->length);
+    assert(start + count <= bitmap->length);
 
     for (size_t i = start; i < start + count; i++) {
         if (i % 8 == 0) {

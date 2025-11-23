@@ -25,10 +25,8 @@ typedef struct {
 void frame_init(void);
 errno_t frame_alloc(size_t count, uintptr_t* phys);
 errno_t frame_free(size_t count, uintptr_t phys);
-uintptr_t frames_end_address(void);
 
 uintptr_t get_memory_start(void);
-uintptr_t get_memory_end_from(uintptr_t start_address);
 uintptr_t get_memory_end(void);
 
 void update_free_frame_count(uintptr_t start_address);
