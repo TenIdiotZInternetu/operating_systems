@@ -159,3 +159,18 @@ bool bitmap_check_range_is(bitmap_t* bitmap, size_t start, size_t count, bool bi
     }
     return true;
 }
+
+void print_bitmap(bitmap_t* bitmap) {
+    print_bitmap_range(bitmap, 0, bitmap->length);
+}
+
+void print_bitmap_range(bitmap_t* bitmap, size_t start, size_t count) {
+    assert(start + count <= bitmap->length);
+
+    for (size_t i = start; i < start + count; i++) {
+        if (i % 8 == 0) {
+            printk(" ");
+        }
+        printk(bitmap_is_set(bitmap, i) ? "1" : "0");
+    }
+}

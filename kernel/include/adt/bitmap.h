@@ -75,5 +75,7 @@ void bitmap_clear_range(bitmap_t* bitmap, size_t start, size_t count);
 errno_t bitmap_find_range(bitmap_t* bitmap, size_t count, bool bits_set, size_t* start);
 errno_t bitmap_find_range_with_hint(bitmap_t* bitmap, size_t count, bool bits_set, size_t hint, size_t* start);
 bool bitmap_check_range_is(bitmap_t* bitmap, size_t start, size_t count, bool bits_set);
+void print_bitmap(bitmap_t* bitmap);
+void print_bitmap_range(bitmap_t* bitmap, size_t start, size_t count);
 
 #endif
