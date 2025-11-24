@@ -4,6 +4,11 @@
 #ifndef _PROC_SCHEDULER_H
 #define _PROC_SCHEDULER_H
 
+#ifndef KERNEL_SCHEDULER_QUANTUM
+/** Scheduling quantum default. */
+#define KERNEL_SCHEDULER_QUANTUM 2000
+#endif
+
 #include <adt/list.h>
 #include <proc/thread.h>
 
@@ -23,6 +28,7 @@ thread_t* scheduler_get_previous_thread(void);
 void scheduler_add_ready_thread(thread_t* thread);
 void scheduler_remove_thread(thread_t* thread);
 void scheduler_schedule_next(void);
+void scheduler_schedule_next_after_interrupt(void);
 
 void print_scheduler(void);
 

@@ -5,11 +5,6 @@
 #include <debug/code.h>
 #include <proc/scheduler.h>
 
-#ifndef KERNEL_SCHEDULER_QUANTUM
-/** Scheduling quantum default. */
-#define KERNEL_SCHEDULER_QUANTUM 2000
-#endif
-
 static scheduler_t scheduler;
 
 /**
@@ -32,6 +27,8 @@ void scheduler_init(void) {
     scheduler.previous_thread = NULL;
 
     scheduler.is_initialized = true;
+
+    timer_interrupt_after(KERNEL_SCHEDULER_QUANTUM);
 }
 
 thread_t* scheduler_get_current_thread(void) {
@@ -97,9 +94,8 @@ void scheduler_remove_thread(thread_t* thread) {
     list_append(&scheduler.idle_threads, &thread->link);
 }
 
-/** Switch to next thread in the queue. */
-void scheduler_schedule_next(void) {
-    thread_t* p_cur_thread = scheduler_get_current_thread();
+static void _update_queue(void) {
+    thread_t* p_cur_thread = scheduler.current_thread;
     bool is_cur_ready = _can_thread_run(p_cur_thread);
 
     if (!_has_ready_threads()) {
@@ -109,7 +105,13 @@ void scheduler_schedule_next(void) {
     if (is_cur_ready) {
         list_rotate(&scheduler.ready_threads);
     }
+}
 
+/** Switch to next thread in the queue. */
+void scheduler_schedule_next(void) {
+    _update_queue();
+
+    thread_t* p_cur_thread = scheduler_get_current_thread();
     thread_t* p_next_thread = _scheduler_get_thread_to_run();
 
     if (p_cur_thread != p_next_thread) {
@@ -118,6 +120,10 @@ void scheduler_schedule_next(void) {
         scheduler.current_thread = p_next_thread;
         thread_switch_to(p_next_thread);
     }
+}
+
+void scheduler_schedule_next_after_interrupt(void) {
+
 }
 
 void print_scheduler(void) {

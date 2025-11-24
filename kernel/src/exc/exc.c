@@ -5,6 +5,8 @@
 #include <drivers/csr.h>
 #include <drivers/machine.h>
 #include <exc.h>
+#include <proc/scheduler.h>
+#include <drivers/timer.h>
 
 /** Handles general exception.
  *
@@ -13,5 +15,11 @@
  * time of the exception occurring.
  */
 void handle_exception_general(exc_context_t* exc_context) {
-    machine_enter_debugger();
+    if (csr_scause_is_interrupt_pending(exc_context->scause)) {
+        scheduler_schedule_next();
+    }
+    else {
+        machine_enter_debugger();
+    }
+    timer_interrupt_after(KERNEL_SCHEDULER_QUANTUM);
 }
