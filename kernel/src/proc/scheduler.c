@@ -67,7 +67,7 @@ static thread_t* _scheduler_get_thread_to_run(void) {
  *
  * @param thread Thread to make runnable.
  */
-void scheduler_add_to_ready_threads(thread_t* thread) {
+void scheduler_add_ready_thread(thread_t* thread) {
     assert(_scheduler_is_init());
     assert(!thread_has_finished(thread));
 
@@ -84,7 +84,7 @@ void scheduler_add_to_ready_threads(thread_t* thread) {
  *
  * @param thread Thread to remove from the queue.
  */
-void scheduler_remove_from_ready_threads(thread_t* thread) {
+void scheduler_remove_thread(thread_t* thread) {
     assert(_scheduler_is_init());
     assert(link_is_connected(&thread->link));
 

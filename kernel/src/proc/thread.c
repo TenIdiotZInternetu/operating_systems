@@ -73,7 +73,7 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     link_init(&p_thread->link);
     _thread_set_name(p_thread, name);
 
-    scheduler_add_to_ready_threads(p_thread);
+    scheduler_add_ready_thread(p_thread);
 
     *thread_out = p_thread;
     return EOK;
@@ -96,7 +96,7 @@ void thread_yield(void) {
 void thread_suspend(void) {
     thread_t* thread = thread_get_current();
     thread->state = SUSPENDED;
-    scheduler_remove_from_ready_threads(thread);
+    scheduler_remove_thread(thread);
     thread_yield();
 }
 
@@ -116,7 +116,7 @@ void thread_finish(void* retval) {
     thread->state = FINISHED;
     thread->return_value = retval;
 
-    scheduler_remove_from_ready_threads(thread);
+    scheduler_remove_thread(thread);
 
     while (1) {
         thread_yield();
@@ -169,7 +169,7 @@ errno_t thread_wakeup(thread_t* thread) {
     }
 
     thread->state = READY;
-    scheduler_add_to_ready_threads(thread);
+    scheduler_add_ready_thread(thread);
     return EOK;
 }
 
@@ -284,7 +284,7 @@ errno_t thread_kill(thread_t* thread) {
     }
 
     if (thread->state == READY) {
-        scheduler_remove_from_ready_threads(thread);
+        scheduler_remove_thread(thread);
     }
 
     kfree(thread->stack_location);
