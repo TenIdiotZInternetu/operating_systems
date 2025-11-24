@@ -32,8 +32,8 @@ static void thread_init_stack(thread_t* thread) {
  * to a0. After entry_func finishes, this function saves
  * the return value and calls thread_finish
  */
-static void thread_execute() {
-    thread_t* thread_to_execute = scheduler_get_current_thread();
+static void _thread_execute() {
+    thread_t* thread_to_execute = thread_get_current();
 
     void* retval = thread_to_execute->entry_func(thread_to_execute->first_arg);
 
@@ -75,7 +75,7 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     p_thread->first_arg = data;
     p_thread->entry_func = entry;
     p_thread->state = READY;
-    p_thread->context.ra = (unative_t)thread_execute;
+    p_thread->context.ra = (unative_t)_thread_execute;
     p_thread->joined_by_thread = NULL;
     p_thread->is_initialized = true;
 
@@ -182,8 +182,8 @@ errno_t thread_wakeup(thread_t* thread) {
     return EOK;
 }
 
-static bool thread_is_valid(thread_t* thread) {
-    return thread != NULL && thread != scheduler_get_current_thread() && thread->is_initialized;
+static bool _thread_is_valid(thread_t* thread) {
+    return thread != NULL && thread != thread_get_current() && thread->is_initialized;
 }
 
 /** Joins another thread (waits for it to terminate).
@@ -226,13 +226,13 @@ static bool thread_is_valid(thread_t* thread) {
  * @retval EKILLED Thread was killed.
  */
 errno_t thread_join(thread_t* thread, void** retval) {
-    if (!thread_is_valid(thread)) {
+    if (!_thread_is_valid(thread)) {
         return EINVAL;
     } else if (thread->joined_by_thread != NULL) {
         return EBUSY;
     }
 
-    thread->joined_by_thread = scheduler_get_current_thread();
+    thread->joined_by_thread = thread_get_current();
 
     while (!thread_has_finished(thread)) {
         thread_yield();
@@ -292,11 +292,14 @@ errno_t thread_kill(thread_t* thread) {
         return EEXITED;
     }
 
-    scheduler_remove_thread(thread);
+    if (thread->state == READY) {
+        scheduler_remove_thread(thread);
+    }
+
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
     thread->state = KILLED;
 
-    if (thread == scheduler_get_current_thread()) {
+    if (thread == thread_get_current()) {
         thread_yield();
     }
     return EOK;
