@@ -8,7 +8,6 @@
 #include <errno.h>
 #include <mm/frame.h>
 #include <proc/context.h>
-#include <types.h>
 
 /** Thread stack size.
  *

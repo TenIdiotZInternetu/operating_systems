@@ -3,6 +3,7 @@
 
 #include <abi.h>
 #include <errno.h>
+#include <exc.h>
 #include <mm/heap.h>
 #include <proc/context.h>
 #include <proc/scheduler.h>
@@ -33,6 +34,7 @@ static void thread_init_stack(thread_t* thread) {
  * the return value and calls thread_finish
  */
 static void _thread_execute() {
+    interrupts_restore(true);
     thread_t* thread_to_execute = thread_get_current();
 
     void* retval = thread_to_execute->entry_func(thread_to_execute->first_arg);
