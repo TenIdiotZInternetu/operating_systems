@@ -16,9 +16,26 @@
 #define ACTIONS_MAX 200
 #define ACTIONS_MIN 100
 
+typedef struct {
+    thread_t* thread;
+    unative_t seed;
+} worker_info_t;
+
 static volatile bool all_started = false;
 static size_t thread_count;
-static thread_t* threads[THREAD_COUNT];
+static worker_info_t workers[THREAD_COUNT];
+
+static worker_info_t* get_my_worker_info(void) {
+    thread_t* self = thread_get_current();
+    for (size_t i = 0; i < THREAD_COUNT; i++) {
+        if (self == workers[i].thread) {
+            return &workers[i];
+        }
+    }
+    ktest_assert(false, "worker_info not found");
+
+    return NULL;
+}
 
 static inline unative_t get_simple_rand(unative_t* seed) {
     *seed = (*seed * 1439) % 211 + 7;
@@ -43,18 +60,17 @@ static void* worker_with_random_action(void* ignored) {
         thread_yield();
     }
 
-    thread_t* myself = thread_get_current();
-    unative_t seed = (((unative_t)myself) >> 4) & 0xffff;
+    worker_info_t* myself = get_my_worker_info();
 
-    unsigned int loops = get_simple_rand_range(&seed, ACTIONS_MIN, ACTIONS_MAX);
+    unsigned int loops = get_simple_rand_range(&myself->seed, ACTIONS_MIN, ACTIONS_MAX);
     for (unsigned int i = 0; i < loops; i++) {
-        int action = get_simple_rand(&seed) % 7;
+        int action = get_simple_rand(&myself->seed) % 7;
         switch (action) {
         case 0:
             thread_suspend();
             break;
         case 1:
-            thread_wakeup_robust(threads[get_simple_rand(&seed) % thread_count]);
+            thread_wakeup_robust(workers[get_simple_rand(&myself->seed) % thread_count].thread);
             break;
         default:
             thread_yield();
@@ -71,7 +87,7 @@ static size_t get_running_count() {
     //
     size_t result = 0;
     for (size_t i = 0; i < thread_count; i++) {
-        if (!thread_has_finished(threads[i])) {
+        if (!thread_has_finished(workers[i].thread)) {
             result++;
         }
     }
@@ -119,17 +135,22 @@ static void make_thread_name(const char* prefix, char* buffer, size_t size, size
 void kernel_test(void) {
     ktest_start("thread/stress");
 
+    for (size_t i = 0; i < THREAD_COUNT; i++) {
+        workers[i].seed = i + 1;
+        workers[i].thread = NULL;
+    }
+
     for (thread_count = 0; thread_count < THREAD_COUNT; thread_count++) {
         char name[THREAD_NAME_MAX_LENGTH + 1];
         make_thread_name("worker", name, THREAD_NAME_MAX_LENGTH + 1, thread_count);
 
-        errno_t err = thread_create(&threads[thread_count], worker_with_random_action, NULL, 0, name);
+        errno_t err = thread_create(&workers[thread_count].thread, worker_with_random_action, NULL, 0, name);
         if (err == ENOMEM) {
             break;
         }
 
         ktest_assert_errno(err, "thread_create");
-        dprintk("Created thread #%u: %pT.\n", thread_count, threads[thread_count]);
+        dprintk("Created thread #%u: %pT.\n", thread_count, worker[thread_count].thread);
     }
 
     printk("Created %u threads...\n", thread_count);
@@ -145,8 +166,8 @@ void kernel_test(void) {
     while (count > 0) {
         // Try to wake up all "unfinished" threads.
         for (size_t i = 0; i < thread_count; i++) {
-            if (!thread_has_finished(threads[i])) {
-                thread_wakeup_robust(threads[i]);
+            if (!thread_has_finished(workers[i].thread)) {
+                thread_wakeup_robust(workers[i].thread);
             }
         }
 
@@ -160,7 +181,7 @@ void kernel_test(void) {
     }
 
     for (size_t i = 0; i < thread_count; i++) {
-        ktest_thread_join_checked(threads[i], NULL);
+        ktest_thread_join_checked(workers[i].thread, NULL);
     }
 
     ktest_passed();
