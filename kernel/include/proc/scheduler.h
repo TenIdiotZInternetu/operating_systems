@@ -28,6 +28,7 @@ thread_t* scheduler_get_previous_thread(void);
 void scheduler_add_ready_thread(thread_t* thread);
 void scheduler_remove_thread(thread_t* thread);
 void scheduler_schedule_next(void);
+void scheduler_schedule_next_after_interrupt(void);
 
 void print_scheduler(void);
 
