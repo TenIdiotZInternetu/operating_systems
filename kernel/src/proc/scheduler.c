@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <debug/code.h>
 #include <drivers/timer.h>
+#include <exc.h>
 #include <proc/scheduler.h>
 
 static scheduler_t scheduler;
@@ -69,7 +70,7 @@ static thread_t* _scheduler_get_thread_to_run(void) {
  *
  * @param thread Thread to make runnable.
  */
-void scheduler_add_ready_thread(thread_t* thread) {
+static void _unsafe_scheduler_add_ready_thread(thread_t* thread) {
     assert(_scheduler_is_init());
     assert(!thread_has_finished(thread));
 
@@ -79,6 +80,12 @@ void scheduler_add_ready_thread(thread_t* thread) {
     list_append(&scheduler.ready_threads, &thread->link);
 }
 
+void scheduler_add_ready_thread(thread_t* thread) {
+    bool disabled = interrupts_disable();
+    _unsafe_scheduler_add_ready_thread(thread);
+    interrupts_restore(disabled);
+}
+
 /** Removes given thread from scheduling.
  *
  * Expected to be called when thread is suspended, terminates execution
@@ -86,12 +93,18 @@ void scheduler_add_ready_thread(thread_t* thread) {
  *
  * @param thread Thread to remove from the queue.
  */
-void scheduler_remove_thread(thread_t* thread) {
+static void _unsafe_scheduler_remove_thread(thread_t* thread) {
     assert(_scheduler_is_init());
     assert(link_is_connected(&thread->link));
 
     list_remove(&thread->link);
     list_append(&scheduler.idle_threads, &thread->link);
+}
+
+void scheduler_remove_thread(thread_t* thread) {
+    bool disabled = interrupts_disable();
+    _unsafe_scheduler_remove_thread(thread);
+    interrupts_restore(disabled);
 }
 
 static void _update_scheduler(void) {
@@ -112,12 +125,18 @@ static void _update_scheduler(void) {
 }
 
 /** Switch to next thread in the queue. */
-void scheduler_schedule_next(void) {
+static void _unsafe_scheduler_schedule_next(void) {
     _update_scheduler();
-    
+
     thread_t* p_next_thread = _scheduler_get_thread_to_run();
 
     thread_switch_to(p_next_thread);
+}
+
+void scheduler_schedule_next(void) {
+    bool disabled = interrupts_disable();
+    _unsafe_scheduler_schedule_next();
+    interrupts_restore(disabled);
 }
 
 void scheduler_schedule_next_after_interrupt(void) {
