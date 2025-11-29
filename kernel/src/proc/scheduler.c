@@ -114,7 +114,7 @@ static void _update_scheduler(void) {
 /** Switch to next thread in the queue. */
 void scheduler_schedule_next(void) {
     _update_scheduler();
-    
+
     thread_t* p_next_thread = _scheduler_get_thread_to_run();
 
     thread_switch_to(p_next_thread);
