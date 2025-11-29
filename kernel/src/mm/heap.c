@@ -2,6 +2,7 @@
 // Copyright 2019 Charles University
 
 #include "adt/list.h"
+#include <exc.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
 #include <mm/self.h>
@@ -150,19 +151,7 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
     heap_header.free_size -= used_block_total_size;
 }
 
-/** Allocate size bytes on heap.
- *
- * The behavior when size is zero is not defined and none of the provided
- * tests will ever call kmalloc with 0 as the parameter. The implementation may
- * choose to return NULL or a unique pointer for such call (i.e., follow the
- * C standard). Note that causing a kernel panic or not checking for such
- * case at all is also a valid option.
- *
- * @param size Amount of memory to allocate.
- * @return Pointer to allocated memory.
- * @retval NULL Out of memory.
- */
-void* kmalloc(size_t size) {
+void* _unsafe_kmalloc(size_t size) {
     size_t space_to_alloc = align(size);
 
     if (space_to_alloc > heap_header.free_size) {
@@ -179,6 +168,24 @@ void* kmalloc(size_t size) {
 
     void* alloc_ptr = (void*)((uint8_t*)found_block + ALIGNED_HEAD_SIZE);
     return alloc_ptr;
+}
+
+/** Allocate size bytes on heap.
+ *
+ * The behavior when size is zero is not defined and none of the provided
+ * tests will ever call kmalloc with 0 as the parameter. The implementation may
+ * choose to return NULL or a unique pointer for such call (i.e., follow the
+ * C standard). Note that causing a kernel panic or not checking for such
+ * case at all is also a valid option.
+ *
+ * @param size Amount of memory to allocate.
+ * @return Pointer to allocated memory.
+ * @retval NULL Out of memory.
+ */
+void* kmalloc(size_t size) {
+    bool interrupts_enabled = interrupts_disable();
+    _unsafe_kmalloc(size);
+    interrupts_restore(interrupts_enabled);
 }
 
 /**
@@ -241,18 +248,7 @@ static void insert_freed_block(block_head_t* freed_block) {
     list_prepend(&heap_header.free_blocks, &freed_block->link);
 }
 
-/** Free memory previously allocated by kmalloc.
- *
- * The behavior when ptr is NULL is not defined and none of the provided
- * tests will ever call kfree with NULL as the parameter. Note that accepting
- * NULL as a parameter follows the C standard behavior, i.e. everything that
- * malloc can return can be passed to free. In the context of a kernel,
- * aborting the execution on receiving NULL is also an option as that might
- * signal an abnormal situation in a different module.
- *
- * @param ptr Pointer to memory to be freed.
- */
-void kfree(void* ptr) {
+void _unsafe_kfree(void* ptr) {
     block_head_t* freed_block_head = (block_head_t*)((uint8_t*)ptr - ALIGNED_HEAD_SIZE);
     freed_block_head->is_free = true;
     heap_header.free_size += freed_block_head->size;
@@ -272,6 +268,23 @@ void kfree(void* ptr) {
     if (!coalesced_left) {
         insert_freed_block(new_head);
     }
+}
+
+/** Free memory previously allocated by kmalloc.
+ *
+ * The behavior when ptr is NULL is not defined and none of the provided
+ * tests will ever call kfree with NULL as the parameter. Note that accepting
+ * NULL as a parameter follows the C standard behavior, i.e. everything that
+ * malloc can return can be passed to free. In the context of a kernel,
+ * aborting the execution on receiving NULL is also an option as that might
+ * signal an abnormal situation in a different module.
+ *
+ * @param ptr Pointer to memory to be freed.
+ */
+void kfree(void* ptr) {
+    bool interrupts_enabled = interrupts_disable();
+    _unsafe_kfree(ptr);
+    interrupts_restore(interrupts_enabled);
 }
 
 heap_head_t get_heap_info() {
