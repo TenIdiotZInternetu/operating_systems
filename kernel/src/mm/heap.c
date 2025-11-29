@@ -13,6 +13,7 @@ static heap_head_t heap_header;
 #define ALIGNED_TAIL_SIZE align(sizeof(block_tail_t))
 
 #define BLOCK_OVERHEAD (ALIGNED_HEAD_SIZE + ALIGNED_TAIL_SIZE)
+#define MAGIC 0xdeadbed
 
 static size_t align(size_t size_to_alloc) {
     if (size_to_alloc % MIN_BLOCK_SIZE == 0) {
@@ -50,6 +51,7 @@ static block_head_t* _create_free_block(uintptr_t header_address, size_t size) {
     block_head_t* p_free_block_head = (block_head_t*)(header_address);
     p_free_block_head->is_free = true;
     p_free_block_head->size = size;
+    p_free_block_head->magic = MAGIC;
     link_init(&p_free_block_head->link);
 
     uintptr_t free_block_tail_address = header_address + ALIGNED_HEAD_SIZE + size;
@@ -103,6 +105,7 @@ void heap_init(void) {
  */
 static block_head_t* first_fit(size_t size_to_alloc) {
     list_foreach(heap_header.free_blocks, block_head_t, link, block) {
+        assert(block->magic == MAGIC);
         if (block->is_free && (size_to_alloc <= block->size)) {
             return block;
         }
@@ -140,10 +143,8 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
 
     uintptr_t used_block_tail_address = (uintptr_t)free_block_head + ALIGNED_HEAD_SIZE + size_to_alloc;
     _write_block_tail(used_block_tail_address, free_block_head);
-
     uintptr_t new_free_block_address = used_block_tail_address + ALIGNED_TAIL_SIZE;
     size_t new_free_block_data_size = remaining_space - BLOCK_OVERHEAD;
-
     block_head_t* p_free_block_head = _create_free_block(new_free_block_address, new_free_block_data_size);
 
     list_insert_before(&heap_header.free_blocks, p_next_free_block_link, &p_free_block_head->link);
@@ -151,7 +152,7 @@ static void split_block(block_head_t* free_block_head, size_t size_to_alloc) {
     heap_header.free_size -= used_block_total_size;
 }
 
-void* _unsafe_kmalloc(size_t size) {
+static void* _unsafe_kmalloc(size_t size) {
     size_t space_to_alloc = align(size);
 
     if (space_to_alloc > heap_header.free_size) {
@@ -184,8 +185,9 @@ void* _unsafe_kmalloc(size_t size) {
  */
 void* kmalloc(size_t size) {
     bool interrupts_enabled = interrupts_disable();
-    _unsafe_kmalloc(size);
+    void* ptr = _unsafe_kmalloc(size);
     interrupts_restore(interrupts_enabled);
+    return ptr;
 }
 
 /**
@@ -197,10 +199,15 @@ void* kmalloc(size_t size) {
  * @param right_block Pointer to the head of the block we will merge into the left block
  */
 static void coalesce(block_head_t* left_block, block_head_t* right_block) {
+    assert(left_block->magic == MAGIC);
+    assert(right_block->magic == MAGIC);
+
     left_block->size += BLOCK_OVERHEAD + right_block->size;
+    heap_header.free_size += BLOCK_OVERHEAD;
+
     block_tail_t* right_tail = (block_tail_t*)((uint8_t*)right_block + ALIGNED_HEAD_SIZE + right_block->size);
     *right_tail = left_block;
-    heap_header.free_size += BLOCK_OVERHEAD;
+    right_block->magic = 0;
 }
 
 /**
@@ -214,6 +221,7 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
     // Get to prev block through its tail
     block_tail_t* prev_tail = (block_tail_t*)((uint8_t*)freed_block - ALIGNED_TAIL_SIZE);
     block_head_t* prev_head = *prev_tail;
+    assert(prev_head->magic == MAGIC);
 
     if (prev_head->is_free) {
         coalesce(prev_head, freed_block);
@@ -232,6 +240,7 @@ static block_head_t* coalesce_left(block_head_t* freed_block) {
 static void coalesce_right(block_head_t* freed_block) {
     // Get to next block by adding the address and size of the freed block
     block_head_t* next_head = (block_head_t*)((uint8_t*)freed_block + BLOCK_OVERHEAD + freed_block->size);
+    assert(next_head->magic == MAGIC);
 
     if (next_head->is_free) {
         coalesce(freed_block, next_head);
@@ -248,8 +257,10 @@ static void insert_freed_block(block_head_t* freed_block) {
     list_prepend(&heap_header.free_blocks, &freed_block->link);
 }
 
-void _unsafe_kfree(void* ptr) {
+static void _unsafe_kfree(void* ptr) {
     block_head_t* freed_block_head = (block_head_t*)((uint8_t*)ptr - ALIGNED_HEAD_SIZE);
+    assert(freed_block_head->magic == MAGIC);
+
     freed_block_head->is_free = true;
     heap_header.free_size += freed_block_head->size;
     block_head_t* new_head = freed_block_head;
