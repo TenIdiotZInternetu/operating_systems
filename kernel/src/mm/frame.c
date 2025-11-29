@@ -4,6 +4,7 @@
 #include <adt/bitmap.h>
 #include <adt/bits.h>
 #include <debug.h>
+#include <exc.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
 #include <mm/self.h>
@@ -71,11 +72,7 @@ void update_free_frame_count(uintptr_t start_address) {
 }
 
 size_t get_frame_region_size(void) {
-    uintptr_t memory_start = get_memory_start();
-    uintptr_t memory_end = get_memory_end();
-
     size_t available_size = (size_t)(memory_end - memory_start);
-
     return available_size / FRAME_REGION_MEMORY_DIVISOR;
 }
 
@@ -95,6 +92,21 @@ void frame_init(void) {
     assert(bitmap_size_in_frames > 0);
     bitmap_fill_range(&frame_bits, 0, bitmap_size_in_frames);
     frame_allocator.free_frame_count -= bitmap_size_in_frames;
+}
+
+static errno_t _unsafe_frame_alloc(size_t count, uintptr_t* phys) {
+    assert(count > 0);
+    size_t frame_idx;
+    errno_t err = bitmap_find_range(&frame_bits, count, false, &frame_idx);
+
+    if (!_has_free_frames(count) || err == ENOENT) {
+        return ENOMEM;
+    }
+
+    *phys = memory_start + frame_idx * FRAME_SIZE;
+    bitmap_fill_range(&frame_bits, frame_idx, count);
+    frame_allocator.free_frame_count -= count;
+    return EOK;
 }
 
 /**
@@ -119,17 +131,27 @@ void frame_init(void) {
  * @retval ENOMEM Not enough memory.
  */
 errno_t frame_alloc(size_t count, uintptr_t* phys) {
-    assert(count > 0);
-    size_t frame_idx;
-    errno_t err = bitmap_find_range(&frame_bits, count, false, &frame_idx);
+    bool interrupts_enabled = interrupts_disable();
+    errno_t err = _unsafe_frame_alloc(count, phys);
+    interrupts_restore(interrupts_enabled);
+    return err;
+}
 
-    if (!_has_free_frames(count) || err == ENOENT) {
-        return ENOMEM;
+static errno_t _unsafe_frame_free(size_t count, uintptr_t phys) {
+    assert(count > 0);
+
+    if (phys < memory_start || phys % FRAME_SIZE != 0) {
+        return ENOENT;
     }
 
-    *phys = memory_start + frame_idx * FRAME_SIZE;
-    bitmap_fill_range(&frame_bits, frame_idx, count);
-    frame_allocator.free_frame_count -= count;
+    size_t frame_idx = (phys - memory_start) / FRAME_SIZE;
+
+    if (!bitmap_check_range_is(&frame_bits, frame_idx, count, true)) {
+        return EBUSY;
+    }
+
+    bitmap_clear_range(&frame_bits, frame_idx, count);
+    frame_allocator.free_frame_count += count;
     return EOK;
 }
 
@@ -146,19 +168,8 @@ errno_t frame_alloc(size_t count, uintptr_t* phys) {
  * @retval EBUSY Some frames were not allocated (double free).
  */
 errno_t frame_free(size_t count, uintptr_t phys) {
-    assert(count > 0);
-
-    if (phys < memory_start || phys % FRAME_SIZE != 0) {
-        return ENOENT;
-    }
-
-    size_t frame_idx = (phys - memory_start) / FRAME_SIZE;
-
-    if (!bitmap_check_range_is(&frame_bits, frame_idx, count, true)) {
-        return EBUSY;
-    }
-
-    bitmap_clear_range(&frame_bits, frame_idx, count);
-    frame_allocator.free_frame_count += count;
-    return EOK;
+    bool interrupts_enabled = interrupts_disable();
+    errno_t err = _unsafe_frame_free(count, phys);
+    interrupts_restore(interrupts_enabled);
+    return err;
 }
