@@ -16,6 +16,7 @@ typedef struct {
 } heap_head_t;
 
 typedef struct {
+    size_t magic;
     bool is_free;
     size_t size;
     link_t link;
