@@ -17,7 +17,7 @@
  */
 void handle_exception_general(exc_context_t* exc_context) {
     if (csr_scause_is_interrupt_pending(exc_context->scause)) {
-        scheduler_schedule_next_after_interrupt();
+        scheduler_schedule_next();
     } else {
         machine_enter_debugger();
     }

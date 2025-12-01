@@ -5,6 +5,7 @@
 #define _ADT_LIST_H
 
 #include <debug.h>
+#include <exc.h>
 #include <types.h>
 
 /*
@@ -233,6 +234,13 @@ static inline void list_remove(link_t* link) {
     }
 
     link_init(link);
+}
+
+/** Thread-safe version of list_remove */
+static inline void safe_list_remove(link_t* link) {
+    bool disabled = interrupts_disable();
+    list_remove(link);
+    interrupts_restore(disabled);
 }
 
 /** Pop an item from the list

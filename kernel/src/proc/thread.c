@@ -34,8 +34,8 @@ static void thread_init_stack(thread_t* thread) {
  * the return value and calls thread_finish
  */
 static void _thread_execute() {
-    interrupts_restore(true);
     thread_t* thread_to_execute = thread_get_current();
+    interrupts_restore(true);
 
     void* retval = thread_to_execute->entry_func(thread_to_execute->first_arg);
 
@@ -248,7 +248,7 @@ errno_t thread_join(thread_t* thread, void** retval) {
         *retval = thread->return_value;
     }
 
-    list_remove(&thread->link);
+    safe_list_remove(&thread->link);
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
     kfree(thread);
     return EOK;
