@@ -233,7 +233,7 @@ base-m06:
 # M06: as-leaks (AS functions do no leak memory (optional))
 as-leaks:
   stage: M06
-  needs: [as-base]
+  needs: [base-m06]
   allow_failure: false
   script:
     - ./tools/ci.sh suites/m06-as-leaks.txt
@@ -241,7 +241,7 @@ as-leaks:
 # M06: as-on-demand (Tests for on demand page allocation (optional))
 as-on-demand:
   stage: M06
-  needs: [as-base]
+  needs: [base-m06]
   allow_failure: false
   script:
     - ./tools/ci.sh suites/m06-as-on-demand.txt
@@ -249,7 +249,7 @@ as-on-demand:
 # M06: as-recycle (Tests for ASID recycling of destroyed AS (optional))
 as-recycle:
   stage: M06
-  needs: [as-base]
+  needs: [base-m06]
   allow_failure: false
   script:
     - ./tools/ci.sh suites/m06-as-recycle.txt
