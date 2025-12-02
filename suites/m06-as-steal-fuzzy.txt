@@ -1,0 +1,5 @@
+# Tests for stealing ASIDs of active AS with varying quantum (optional, do not run on GitLab)
+kernel as/isolation:m16192:kq2001:ha64:DTEST_AS_COUNT=104
+kernel as/isolation:m16192:kq2435:ha64:DTEST_AS_COUNT=137
+kernel as/isolation:m16192:kq3179:ha64:DTEST_AS_COUNT=235
+kernel as/isolation:m32768:kq2007:DTEST_AS_COUNT=670

@@ -1,0 +1,4 @@
+# Tests for ASID recycling of destroyed AS with varying ASID size (optional, do not run on GitLab)
+kernel as/recycle:ha64:m8192
+kernel as/recycle:t8:ha256:m16384
+kernel as/recycle:t16:m32768

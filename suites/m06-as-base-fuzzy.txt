@@ -1,0 +1,5 @@
+# Basic AS tests with varying quantum (required, do not run on GitLab)
+kernel as/isolation:m16192:kq2017:DTEST_AS_COUNT=231
+kernel as/isolation:m16192:kq2048:DTEST_AS_COUNT=223
+kernel as/isolation:m16192:kq2327:DTEST_AS_COUNT=229
+kernel as/isolation:m16192:kq2885:DTEST_AS_COUNT=241

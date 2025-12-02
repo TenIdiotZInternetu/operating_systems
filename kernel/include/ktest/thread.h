@@ -26,6 +26,16 @@
                 *(thread_out), #entry_func, #entry_arg, (flags)); \
     } while (0)
 
+#define ktest_thread_create_new_as_checked(thread_out, entry_func, entry_arg, flags, name, as_size) \
+    do { \
+        errno_t ___thread_create_err = thread_create_new_as( \
+                (thread_out), (entry_func), (entry_arg), (flags), (name), (as_size)); \
+        ktest_assert_errno(___thread_create_err, \
+                "thread_create_new_as(" #thread_out ", " #entry_func "(" #entry_arg "), AS = " #as_size " B)"); \
+        dprintk("Created thread %pT (entry %s(%s), flags %d, AS size %u).\n", \
+                *(thread_out), #entry_func, #entry_arg, (flags), (as_size)); \
+    } while (0)
+
 static volatile int ktest_thread_blackhole = 0;
 
 static inline void ktest_thread_busy_wait(int loops) {

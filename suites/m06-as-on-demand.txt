@@ -1,0 +1,2 @@
+# Tests for on demand page allocation (optional)
+kernel as/ondemand
