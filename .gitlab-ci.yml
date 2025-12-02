@@ -145,7 +145,7 @@ thread-params:
 # M04: base-m04 (Internal tests (required))
 base-m04:
   stage: M04
-  needs: [base-m03]
+  needs: []
   allow_failure: false
   script:
     - ./tools/ci.sh suites/m04-base.txt
