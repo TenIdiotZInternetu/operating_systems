@@ -1,0 +1,8 @@
+# Basic address space tests (required)
+kernel as/basic
+kernel as/basic:m24576:DAS_PAGES_MAX=1030:DAS_PAGES_REQUIRED=1025:DAS_PAGES_MIN=1023
+kernel as/fault
+kernel as/shared
+kernel as/isolation
+kernel as/pagetable:m3772
+kernel as/pagetable:m1148

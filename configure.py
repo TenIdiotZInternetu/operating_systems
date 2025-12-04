@@ -21,6 +21,14 @@ KERNEL_TEST_EXTRAS = {
             '-DKERNEL_HEAP_ALLOCATOR_MINIMAL_IMPLEMENTATION=1',
         ]
     },
+    'as/leaks': {
+        'mm_implementation': 'tests/leak.c',
+        'CFLAGS': [
+            # Use only for debugging, not for bypassing leak tests
+            '-DKERNEL_HEAP_ALLOCATOR_MINIMAL_IMPLEMENTATION=1',
+            '-DKERNEL_FRAME_ALLOCATOR_MINIMAL_IMPLEMENTATION=1',
+        ]
+    },
 }
 
 # Last one takes precedence
@@ -79,11 +87,6 @@ add drvcpu cpu0
 add rwm mainmem 0x80000000
 mainmem generic {ram_size}K
 mainmem load "kernel/kernel.bin"
-
-# Enforce that lower 2G are inaccessible (this catches NULL dereferences too)
-add dnomem nullpage 0x00000000 2G
-nullpage rd yes
-nullpage mode halt
 
 # Catch accesses deep after kernel (useful for faulty memory detection)
 add dnomem nomem 0x8FC00000 1M

@@ -1,0 +1,2 @@
+# AS functions do no leak memory (optional)
+kernel as/leaks

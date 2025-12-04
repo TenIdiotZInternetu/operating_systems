@@ -7,6 +7,7 @@
 #include <ktest.h>
 #include <lib/print.h>
 #include <main.h>
+#include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
 #include <proc/scheduler.h>
@@ -41,11 +42,12 @@ static void* init_thread(void* ignored) {
 void kernel_main(void) {
     frame_init();
     heap_init();
+    as_init();
     scheduler_init();
     threads_init();
 
     thread_t* main_thread;
-    errno_t err = thread_create(&main_thread, init_thread, NULL, 0, "[INIT]");
+    errno_t err = thread_create_new_as(&main_thread, init_thread, NULL, 0, "[INIT]", 0);
     panic_if(err != EOK, "init thread creation failed (%d: %s)", err, errno_as_str(err));
 
     // Switch to the first thread.
