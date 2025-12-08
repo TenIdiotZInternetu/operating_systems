@@ -242,9 +242,9 @@ errno_t thread_join(thread_t* thread, void** retval) {
 
     uintptr_t stack_location = thread->stack_location;
     safe_list_remove(&thread->link);
-    kfree(thread);
 
     if (thread->state == KILLED) {
+        kfree(thread);
         return EKILLED;
     }
 
@@ -252,6 +252,7 @@ errno_t thread_join(thread_t* thread, void** retval) {
         *retval = thread->return_value;
     }
 
+    kfree(thread);
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, stack_location);
     return EOK;
 }
