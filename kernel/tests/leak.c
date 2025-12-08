@@ -180,7 +180,7 @@ static errno_t frame_alloc_unsafe(size_t count, uintptr_t* phys, uintptr_t calle
 
 errno_t frame_alloc(size_t count, uintptr_t* phys) {
     uintptr_t caller = GET_CALLER_ADDRESS();
-    uint8_t ipl = interrupts_disable();
+    bool ipl = interrupts_disable();
     errno_t result = frame_alloc_unsafe(count, phys, caller);
     interrupts_restore(ipl);
 
@@ -195,7 +195,7 @@ static void frame_free_unsafe(size_t count, uintptr_t phys) {
 }
 
 errno_t frame_free(size_t count, uintptr_t phys) {
-    uint8_t ipl = interrupts_disable();
+    bool ipl = interrupts_disable();
     frame_free_unsafe(count, phys);
     interrupts_restore(ipl);
 

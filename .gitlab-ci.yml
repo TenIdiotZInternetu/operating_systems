@@ -30,6 +30,7 @@ stages:
   - M03
   - M04
   - M05
+  - M06
 
 # Check C style of the code
 check-cstyle:
@@ -144,7 +145,7 @@ thread-params:
 # M04: base-m04 (Internal tests (required))
 base-m04:
   stage: M04
-  needs: [base-m03]
+  needs: []
   allow_failure: false
   script:
     - ./tools/ci.sh suites/m04-base.txt
@@ -220,4 +221,44 @@ sem-try:
   allow_failure: false
   script:
     - ./tools/ci.sh suites/m05-sem-try.txt
+
+# M06: base-m06 (Basic address space tests (required))
+base-m06:
+  stage: M06
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m06-base.txt
+
+# M06: as-leaks (AS functions do no leak memory (optional))
+as-leaks:
+  stage: M06
+  needs: [base-m06]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m06-as-leaks.txt
+
+# M06: as-on-demand (Tests for on demand page allocation (optional))
+as-on-demand:
+  stage: M06
+  needs: [base-m06]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m06-as-on-demand.txt
+
+# M06: as-recycle (Tests for ASID recycling of destroyed AS (optional))
+as-recycle:
+  stage: M06
+  needs: [base-m06]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m06-as-recycle.txt
+
+# M06: as-steal (Tests for stealing ASIDs of active AS (optional))
+as-steal:
+  stage: M06
+  needs: [as-recycle]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m06-as-steal.txt
 

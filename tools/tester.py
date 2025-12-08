@@ -94,6 +94,7 @@ class InThreadPopener(threading.Thread):
                 # Probably (fingers crossed) a race between poll() and kill()
 
 def run_command_with_logging(command, work_dir, log_filename, logger, stdin=subprocess.DEVNULL, timeout=600):
+    logger.debug("[EXEC] %s (timeout=%d, wd=%s)", command, timeout, work_dir)
     proc = InThreadPopener(command, work_dir, log_filename, logger, stdin)
     proc.start()
     proc.forceful_wait(timeout)
@@ -120,6 +121,7 @@ def parse_test_config(test_descriptor):
     extras = {
         'memory_size': None,
         'kernel_cflags': [],
+        'timeout': 240,
     }
 
     for part in parts[1:]:
@@ -132,6 +134,11 @@ def parse_test_config(test_descriptor):
         elif part.startswith('kq'):
             quantum = int(part[2:])
             extras['kernel_cflags'].append(f'KERNEL_SCHEDULER_QUANTUM={quantum}')
+        elif part.startswith('ha'):
+            max_asids = int(part[2:])
+            extras['kernel_cflags'].append(f'HARDWARE_ASIDS_MAX={max_asids}')
+        elif part.startswith('t'):
+            extras['timeout'] = int(part[1:]) * 60
         elif part.startswith('D'):
             extras['kernel_cflags'].append(part[1:])
         else:
@@ -187,7 +194,7 @@ def run_os_test(test_descriptor, extra_configure_args, logger, build_dir_name):
         build_dir,
         msim_log,
         logger,
-        timeout=240,
+        timeout=parameters['timeout'],
     )
     if exit_code != 0:
         raise TesterException('MSIM execution failed', 'see msim.log')

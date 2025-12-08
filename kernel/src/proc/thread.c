@@ -49,6 +49,8 @@ static void _thread_execute() {
  * This function allocates space for both stack and the thread_t structure
  * (hence the double <code>**</code> in <code>thread_out</code>).
  *
+ * This thread will use the same address space as the current one.
+ *
  * @param thread_out Where to place the initialized thread_t structure.
  * @param entry Thread entry function.
  * @param data Data for the entry function.
@@ -88,6 +90,28 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
 
     *thread_out = p_thread;
     return EOK;
+}
+
+/** Create a new thread with new address space.
+ *
+ * The thread is automatically placed into the queue of ready threads.
+ *
+ * This function allocates space for both stack and the thread_t structure
+ * (hence the double <code>**</code> in <code>thread_out</code>).
+ *
+ * @param thread_out Where to place the initialized thread_t structure.
+ * @param entry Thread entry function.
+ * @param data Data for the entry function.
+ * @param flags Flags (unused).
+ * @param name Thread name (for debugging purposes).
+ * @param as_size Address space size, aligned at page size (0 is correct though not very useful).
+ * @return Error code.
+ * @retval EOK Thread was created and started (added to ready queue).
+ * @retval ENOMEM Not enough memory to complete the operation.
+ * @retval EINVAL Invalid flags (unused).
+ */
+errno_t thread_create_new_as(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name, size_t as_size) {
+    return ENOIMPL;
 }
 
 /** Return information about currently executing thread.
@@ -275,6 +299,11 @@ void thread_switch_to(thread_t* thread) {
     }
 
     cpu_switch_context(prev_context, &thread->context);
+}
+
+/** Get address space of given thread. */
+as_t* thread_get_as(thread_t* thread) {
+    return NULL;
 }
 
 /** Kills given thread.

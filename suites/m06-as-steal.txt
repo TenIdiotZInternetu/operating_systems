@@ -1,0 +1,3 @@
+# Tests for stealing ASIDs of active AS (optional)
+kernel as/isolation:ha64:m12288:DTEST_AS_COUNT=75
+kernel as/isolation:ha128:m16384:DTEST_AS_COUNT=147
