@@ -174,7 +174,7 @@ demand), you are expected to simply kill the offending thread.
 ### Page table management
 
 We provide a few helper macros and functions for page table configuration in
-the [`drivers/sv23.h`](kernel/include/drivers/sv32.h) header file.
+the [`drivers/sv32.h`](kernel/include/drivers/sv32.h) header file.
 
 The `sv32_set_satp()` function only sets the `satp` register to the given
 value, i.e. the combination of ASID, mode and physical address (frame number)
@@ -225,7 +225,7 @@ returning memory when resource allocation partially fails. As in M03, use
       initialization so that you can quickly check your memory detection
       is correct.
     * Ensure that you build a correct page table (see the
-      [`as/pagetable`](kernel/test/as/pagetable/test.c) test) without touching
+      [`as/pagetable`](kernel/tests/as/pagetable/test.c) test) without touching
       the `satp` register.
     * Use the page translation commands of MSIM to test your page table.
     * Focus first on cases in which the kernel will see only a few address
@@ -243,7 +243,7 @@ returning memory when resource allocation partially fails. As in M03, use
 
 The **baseline solution** for this milestone must pass the baseline tests for
 `M01`, `M02`, `M03`, `M04`, `M05` and `M06`. The commit representing the
-solution must be tagged with `m07`. Submitting a **working baseline solution**
+solution must be tagged with `m06`. Submitting a **working baseline solution**
 within this milestone's deadline allows you to gain bonus points towards
 a better grade.
 
