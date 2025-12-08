@@ -17,6 +17,12 @@
  */
 #define CSR_SSTATUS_SIE 0x2
 
+/** Bitmask of SPP bit in SSTATUS CSR.
+ *  This bit controls whether trap was taken from userspace (0) or somewhere
+ *  else (1).
+ */
+#define CSR_SSTATUS_SPP_MASK (1 << 8)
+
 /** The CSR number of the MEPC (machine exception program counter) CSR */
 #define CSR_MEPC 0x341
 /** The CSR number of the MCAUSE (machine cause) CSR */

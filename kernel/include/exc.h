@@ -9,6 +9,7 @@
 #include <types.h>
 
 void handle_exception_general(exc_context_t* exc_context);
+void handle_syscall(exc_context_t* context);
 
 /** Disables all interrupts (on the CPU) and returns the previous state.
  *

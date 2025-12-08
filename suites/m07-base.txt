@@ -1,0 +1,10 @@
+# Base userspace tests (required)
+userspace basic/empty
+userspace basic/null_deref
+userspace basic/csr
+userspace basic/kmem1
+userspace basic/kmem2
+userspace basic/stack_overflow
+mixed process/exit
+mixed process/stress1
+mixed process/stress2

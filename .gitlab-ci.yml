@@ -31,6 +31,7 @@ stages:
   - M04
   - M05
   - M06
+  - M07
 
 # Check C style of the code
 check-cstyle:
@@ -261,4 +262,36 @@ as-steal:
   allow_failure: false
   script:
     - ./tools/ci.sh suites/m06-as-steal.txt
+
+# M07: base-m07 (Base userspace tests (required))
+base-m07:
+  stage: M07
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m07-base.txt
+
+# M07: printf (Userspace printf (optional))
+printf:
+  stage: M07
+  needs: [base-m07]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m07-printf.txt
+
+# M07: procinfo (procinfo system call (optional))
+procinfo:
+  stage: M07
+  needs: [base-m07]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m07-procinfo.txt
+
+# M07: uheap (Userspace heap (optional))
+uheap:
+  stage: M07
+  needs: [procinfo]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m07-uheap.txt
 

@@ -1,6 +1,7 @@
 target/
 config.mk
 compile_commands.json
+*.a
 *.bin
 *.dep
 *.disasm
