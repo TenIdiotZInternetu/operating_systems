@@ -6,6 +6,7 @@
 
 #include <adt/list.h>
 #include <errno.h>
+#include <mm/as.h>
 #include <mm/frame.h>
 #include <proc/context.h>
 
@@ -47,6 +48,7 @@ struct thread {
     void* first_arg;
     thread_t* joined_by_thread;
     link_t link;
+    as_t* address_space;
     bool is_initialized;
 };
 

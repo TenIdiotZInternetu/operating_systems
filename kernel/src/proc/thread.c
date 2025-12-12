@@ -83,6 +83,11 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     p_thread->joined_by_thread = NULL;
     p_thread->is_initialized = true;
 
+    thread_t* p_cur_thread = thread_get_current();
+    if (p_cur_thread != NULL) {
+        p_thread->address_space = p_cur_thread->address_space;
+    }
+
     link_init(&p_thread->link);
     _thread_set_name(p_thread, name);
 
@@ -111,7 +116,22 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
  * @retval EINVAL Invalid flags (unused).
  */
 errno_t thread_create_new_as(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name, size_t as_size) {
-    return ENOIMPL;
+    // TODO Decompose shared code of thread_create, to avoid allocating 2 stacks
+    thread_create(thread_out, entry, data, flags, name);
+
+    as_t* new_address_space = as_create(as_size, 0);
+    if (new_address_space == NULL) {
+        frame_free(1, (*thread_out)->stack_location);
+        kfree(*thread_out);
+        return ENOMEM;
+    }
+
+    // TODO Check for available memory and prevent leaks
+    // also check if this is correct, i am really not sure
+    uintptr_t stack_address = as_alloc_page(new_address_space, AS_STACK_ADDRESS, 2);
+    (*thread_out)->stack_location = stack_address;
+    as_add_thread(new_address_space, *thread_out);
+    return EOK;
 }
 
 /** Return information about currently executing thread.
@@ -218,7 +238,7 @@ static bool _thread_is_valid(thread_t* thread) {
  * (i.e. the parameter) terminates (either by being killed, finishing its
  * entry function or calling thread_finish). It is not allowed to join the
  * same thread from two places, where possible (see below) this should be
- * detected and signalled via EBUSY return value.
+ * detected and signalled via EBUSY return value.return ENOIMPL;
  *
  * After thread_join returns, all pointers to the joined thread (i.e., to the
  * thread_t structure given as parameter) are considered invalid and should
@@ -274,6 +294,7 @@ errno_t thread_join(thread_t* thread, void** retval) {
 
     safe_list_remove(&thread->link);
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
+    as_remove_thread(thread);
     kfree(thread);
     return EOK;
 }
@@ -303,7 +324,7 @@ void thread_switch_to(thread_t* thread) {
 
 /** Get address space of given thread. */
 as_t* thread_get_as(thread_t* thread) {
-    return NULL;
+    return thread->address_space;
 }
 
 /** Kills given thread.

@@ -5,6 +5,7 @@
 #define _MM_AS_H
 
 #include <errno.h>
+#include <proc/thread.h>
 #include <types.h>
 
 /*
@@ -21,18 +22,32 @@
 #define HARDWARE_ASIDS_MAX 512
 #endif
 
+#define PAGE_OFFSET_BITS 12
 #define PAGE_SIZE 4096
 
 #define PAGE_NULL_COUNT 2
+#define AS_STACK_ADDRESS (1 << 13) // 8kB
 
 typedef struct as {
+    size_t asid;
+    uintptr_t root_table_addr;
+    size_t using_threads;
     size_t size;
 } as_t;
 
 void as_init(void);
 as_t* as_create(size_t size, unsigned int flags);
-size_t as_get_size(as_t* as);
+uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count);
 void as_destroy(as_t* as);
+
+void as_add_thread(as_t* as, thread_t* thread);
+void as_remove_thread(thread_t* thread);
+
+size_t as_get_size(as_t* as);
 uintptr_t as_get_root_page_table(as_t* as);
+
+static inline size_t addr_to_ppn(uintptr_t address) {
+    return address >> PAGE_OFFSET_BITS;
+}
 
 #endif
