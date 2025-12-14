@@ -85,6 +85,7 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
 
     thread_t* p_cur_thread = thread_get_current();
     if (p_cur_thread != NULL) {
+        // NOTE what else
         p_thread->address_space = p_cur_thread->address_space;
     }
 
