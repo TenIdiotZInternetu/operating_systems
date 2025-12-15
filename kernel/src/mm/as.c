@@ -129,14 +129,34 @@ void as_remove_thread(thread_t* thread) {
 /**
  *  Adds an entry to the first (root) level page table, and sets it to valid
  *
+ *  @param page_table_address Address of the page table where to add the entry.
+ *  @param entry_index Index of the entry we want to add in the page table
+ *  @param phys_addr Physical address the entry should point to
+ *  @param is_leaf Whether the entry should be a leaf entry
+ *  @param userspace_access Whether the page should be accessible in userspace
+ */
+static void _add_pte(uint32_t* page_table_address, size_t entry_index, uintptr_t phys_addr, bool is_leaf, bool userspace_access) {
+    uint32_t* entry = page_table_address + entry_index;
+    *entry = 0;
+    *entry |= 1 << PTE_VALID_BIT;
+    *entry |= is_leaf << PTE_READ_BIT;
+    *entry |= is_leaf << PTE_WRITE_BIT;
+    *entry |= is_leaf << PTE_EXECUTE_BIT;
+    *entry |= userspace_access << PTE_USERMODE_BIT;
+    *entry |= phys_addr;
+}
+
+/**
+ *  Adds an entry to the first (root) level page table, and sets it to valid
+ *
  *  @param as Address space to use.
  *  @param virtual_addr Virtual address to map in the entry
  *  @param phys_addr Physical address the entry should point to
  *  @param is_leaf Whether the entry should be a leaf entry
  */
-static void _add_lvl1_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr, bool is_leaf) {
-    // TODO
-    // For leaf entry see Table 4.5 of https://d3s.mff.cuni.cz/files/teaching/nswi200/202324/doc/riscv-spec-privileged.pdf
+static void _add_lvl1_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr, bool is_leaf, bool userspace_access) {
+    size_t entry_index = (virtual_addr & PTE_VPN1_MASK) >> (PTE_SIZE_BITS - PTE_VPN1_SIZE);
+    _add_pte((uint32_t*)as->root_table_addr, entry_index, phys_addr, is_leaf, userspace_access);
 }
 
 /**
