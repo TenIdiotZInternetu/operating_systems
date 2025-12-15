@@ -9,9 +9,23 @@
 
 #define KERNEL_ADDRESS 0x80000000
 #define PTE_SIZE_BYTES 4
+#define PTE_SIZE_BITS (PTE_SIZE_BYTES * 8)
 
-#define PTE_VALIDITY_BITMASK 0x1
+#define PTE_VALID_BIT 0
+#define PTE_READ_BIT 1
+#define PTE_WRITE_BIT 2
+#define PTE_EXECUTE_BIT 3
+#define PTE_USERMODE_BIT 4
+#define PTE_GLOBAL_BIT 5
+#define PTE_ACCESSED_BIT 6
+#define PTE_DIRTY_BIT 7
+
+#define PTE_VALIDITY_MASK 0x1
 #define PTE_PPN_MASK 0xFFFFF000
+#define PTE_VPN1_SIZE 10
+#define PTE_VPN2_SIZE 10
+#define PTE_VPN1_MASK ((1 << PTE_VPN1_SIZE) - 1) << (PTE_SIZE_BITS - PTE_VPN1_SIZE)
+#define PTE_VPN2_MASK ((1 << PTE_VPN1_SIZE) - 1) << (PTE_SIZE_BITS - PTE_VPN1_SIZE - PTE_VPN2_SIZE)
 
 /** Initializes support for address spaces.
  *
@@ -75,7 +89,7 @@ void as_destroy(as_t* as) {
     for (size_t i = 0; i < PAGE_SIZE; i += PTE_SIZE_BYTES) {
         // TODO solve how to get the actual entry value from the root page table
         uint32_t lvl1_entry;
-        bool entry_is_valid = lvl1_entry & PTE_VALIDITY_BITMASK;
+        bool entry_is_valid = lvl1_entry & PTE_VALIDITY_MASK;
 
         if (entry_is_valid) {
             frame_free(1, lvl1_entry & PTE_PPN_MASK);
@@ -170,7 +184,7 @@ static void _add_lvl1_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr,
  *  @retval EOK Operation successful
  *  @retval ENOMEM Out of memory
  */
-static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr) {
+static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr, bool userspace_access) {
     // TODO
     // reuse _add_lvl1_pte
     return ENOIMPL;
