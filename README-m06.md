@@ -116,6 +116,11 @@ To simplify debugging and also to make the tests simpler we expect that your
 kernel will run with `SUM` bit in the status register set. This bit effectively
 enables the kernel to access userspace pages even when the user bit is set.
 
+Recall that the `sstatus` register is part of thread context: setting this
+register during thread initialization is the easiest way to ensure that
+a thread starts with reasonable settings (e.g., interrupts enabled, permit
+supervisor memory access).
+
 
 ### Hardware support for address spaces
 
