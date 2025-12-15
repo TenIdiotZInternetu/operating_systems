@@ -133,8 +133,9 @@ void as_remove_thread(thread_t* thread) {
  *  @param virtual_addr Virtual address to map in the entry
  *  @param phys_addr Physical address the entry should point to
  *  @param is_leaf Whether the entry should be a leaf entry
+ *  @param userspace_access Whether the page will be accsessible from user mode
  */
-static void _add_lvl1_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr, bool is_leaf) {
+static void _add_lvl1_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr, bool is_leaf, bool userspace_access) {
     // TODO
     // For leaf entry see Table 4.5 of https://d3s.mff.cuni.cz/files/teaching/nswi200/202324/doc/riscv-spec-privileged.pdf
 }
@@ -147,10 +148,11 @@ static void _add_lvl1_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr,
  *  @param as Address space to use.
  *  @param virtual_addr Virtual address to map in the entry
  *  @param phys_addr Physical address the entry should point to
+ *  @param userspace_access Whether the page will be accsessible from user mode
  *  @retval EOK Operation successful
  *  @retval ENOMEM Out of memory
  */
-static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr) {
+static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr, bool userspace_access) {
     // TODO
     // reuse _add_lvl1_pte
     return ENOIMPL;
