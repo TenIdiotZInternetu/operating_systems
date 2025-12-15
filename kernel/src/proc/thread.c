@@ -241,6 +241,12 @@ errno_t thread_join(thread_t* thread, void** retval) {
     }
 
     bool interrupts_enabled = interrupts_disable();
+    errno_t err = _release_resources_on_join(thread, retval);
+    interrupts_restore(interrupts_enabled);
+    return err;
+}
+
+static errno_t _release_resources_on_join(thread_t* thread, void** retval) {
     safe_list_remove(&thread->link);
 
     if (thread->state == KILLED) {
@@ -254,7 +260,6 @@ errno_t thread_join(thread_t* thread, void** retval) {
 
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
     kfree(thread);
-    interrupts_restore(interrupts_enabled);
     return EOK;
 }
 
