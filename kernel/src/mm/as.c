@@ -43,131 +43,6 @@ static void _table_init(uint32_t* table_address) {
     }
 }
 
-/** Create new address space of given size.
- *
- * The address space must start at address (PAGE_SIZE * PAGE_NULL_COUNT).
- *
- * @param size Address space size (in bytes), aligned to PAGE_SIZE.
- * @param flags Flags (unused).
- * @return New address space.
- * @retval NULL Out of memory.
- */
-as_t* as_create(size_t size, unsigned int flags) {
-    as_t* address_space = (as_t*)kmalloc(sizeof(as_t));
-    errno_t err = frame_alloc(1, &address_space->root_table_addr);
-    if (err == ENOMEM) {
-        return NULL;
-    }
-
-    address_space->size = size;
-    _table_init((uint32_t*)address_space->root_table_addr);
-    _add_lvl1_pte(&address_space, KERNEL_ADDRESS, KERNEL_ADDRESS, true, false);
-    _add_lvl1_pte(&address_space, PRINTER_ADDRESS, PRINTER_ADDRESS, true, false);
-    return &address_space;
-}
-
-/** Get the size (in bytes) of a given address space. */
-size_t as_get_size(as_t* as) {
-    return as->size;
-}
-
-/**
- * Allocates frames and maps them to the given virtual address in the 2nd level page table
- *
- * @param as Address space to use
- * @param virtual_addr Virtual address to map the frames to
- * @param count Amount of frames to allocate
- * @return The physical address of the allocated frame
- * @retval NULL Out of memory
- */
-uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
-    // TODO
-}
-
-/**
- * Iterates through the table and deallocates frame for every valid page
- * @param table_address Address of the table with entries to deallocate
- *
- */
-void _deallocate_entries(uint32_t* table_address) {
-    for (size_t i = 0; i < PAGES_PER_TABLE; ++i) {
-        uint32_t lvl2_entry = table_address[i];
-        bool entry_is_valid = lvl2_entry & PTE_VALIDITY_MASK;
-
-        if (entry_is_valid) {
-            frame_free(1, lvl2_entry & PTE_PPN_MASK);
-        }
-    }
-}
-
-/** Destroy a given address space, freeing all the memory.
- *
- * It is not expected that a user will call this function directly: an address
- * space should be destroyed when its last thread exits. Therefore one should
- * keep track of owning threads (such API is not defined by the tests and is
- * implementation specific) and when the counter reaches zero, call this
- * function.
- *
- * Note that this function is called explicitly only in unit tests for
- * the as_t structure.
- */
-void as_destroy(as_t* as) {
-    size_t userspace_entries_count = KERNEL_ADDRESS / MEGAPAGE_SIZE;
-    for (size_t i = 0; i < userspace_entries_count; ++i) {
-        uint32_t lvl1_entry = ((uint32_t*)as->root_table_addr)[i];
-        bool entry_is_valid = lvl1_entry & PTE_VALIDITY_MASK;
-        if (entry_is_valid) {
-            uintptr_t lvl2_table_phys_addr = lvl1_entry & PTE_PPN_MASK;
-            _deallocate_entries((uint32_t*)(lvl2_table_phys_addr));
-            frame_free(1, lvl2_table_phys_addr);
-        }
-    }
-
-    frame_free(1, as->root_table_addr);
-    kfree(as);
-}
-
-/** Get physical address of root page table.
- *
- * The function should return complete physical address, i.e. not only PPN.
- *
- * @param as Address space to use.
- * @return Physical address of root page table.
- */
-uintptr_t as_get_root_page_table(as_t* as) {
-    return as->root_table_addr;
-}
-
-/**
- * Assigns address space to a thread, and increases the spaces threads counter.
- *
- * @param as Address space to assign
- * @param thread Thread to assign the space to
- */
-void as_add_thread(as_t* as, thread_t* thread) {
-    thread->address_space = as;
-    as->using_threads++;
-}
-
-/**
- * Removes address space from a thread, and decreses the spaces threads counter.
- * If there are no threads using the space left, the space is destroyed
- *
- * @param as Address space to assign
- * @param thread Thread to assign the space to
- */
-void as_remove_thread(thread_t* thread) {
-    as_t* as = thread->address_space;
-    assert(as->using_threads != 0);
-
-    thread->address_space = NULL;
-    as->using_threads--;
-
-    if (as->using_threads == 0) {
-        as_destroy(as);
-    }
-}
-
 static size_t _lvl1_entry_index(uintptr_t virtual_addr) {
     return (virtual_addr & PTE_VPN1_MASK) >> (PTE_SIZE_BITS - PTE_VPN1_SIZE);
 }
@@ -240,4 +115,130 @@ static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_ad
     _add_pte(lvl2_table_address, _lvl2_entry_index(virtual_addr), phys_addr, true, userspace_access);
 
     return EOK;
+}
+
+/** Create new address space of given size.
+ *
+ * The address space must start at address (PAGE_SIZE * PAGE_NULL_COUNT).
+ *
+ * @param size Address space size (in bytes), aligned to PAGE_SIZE.
+ * @param flags Flags (unused).
+ * @return New address space.
+ * @retval NULL Out of memory.
+ */
+as_t* as_create(size_t size, unsigned int flags) {
+    as_t* address_space = (as_t*)kmalloc(sizeof(as_t));
+    errno_t err = frame_alloc(1, &address_space->root_table_addr);
+    if (err == ENOMEM) {
+        return NULL;
+    }
+
+    address_space->size = size;
+    _table_init((uint32_t*)address_space->root_table_addr);
+    _add_lvl1_pte(address_space, KERNEL_ADDRESS, KERNEL_ADDRESS, true, false);
+    _add_lvl1_pte(address_space, PRINTER_ADDRESS, PRINTER_ADDRESS, true, false);
+    return address_space;
+}
+
+/** Get the size (in bytes) of a given address space. */
+size_t as_get_size(as_t* as) {
+    return as->size;
+}
+
+/**
+ * Allocates frames and maps them to the given virtual address in the 2nd level page table
+ *
+ * @param as Address space to use
+ * @param virtual_addr Virtual address to map the frames to
+ * @param count Amount of frames to allocate
+ * @return The physical address of the allocated frame
+ * @retval NULL Out of memory
+ */
+uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
+    // TODO
+    return 0;
+}
+
+/**
+ * Iterates through the table and deallocates frame for every valid page
+ * @param table_address Address of the table with entries to deallocate
+ *
+ */
+static void _deallocate_entries(uint32_t* table_address) {
+    for (size_t i = 0; i < PAGES_PER_TABLE; ++i) {
+        uint32_t lvl2_entry = table_address[i];
+        bool entry_is_valid = lvl2_entry & PTE_VALIDITY_MASK;
+
+        if (entry_is_valid) {
+            frame_free(1, lvl2_entry & PTE_PPN_MASK);
+        }
+    }
+}
+
+/** Destroy a given address space, freeing all the memory.
+ *
+ * It is not expected that a user will call this function directly: an address
+ * space should be destroyed when its last thread exits. Therefore one should
+ * keep track of owning threads (such API is not defined by the tests and is
+ * implementation specific) and when the counter reaches zero, call this
+ * function.
+ *
+ * Note that this function is called explicitly only in unit tests for
+ * the as_t structure.
+ */
+void as_destroy(as_t* as) {
+    size_t userspace_entries_count = KERNEL_ADDRESS / MEGAPAGE_SIZE;
+    for (size_t i = 0; i < userspace_entries_count; ++i) {
+        uint32_t lvl1_entry = ((uint32_t*)as->root_table_addr)[i];
+        bool entry_is_valid = lvl1_entry & PTE_VALIDITY_MASK;
+        if (entry_is_valid) {
+            uintptr_t lvl2_table_phys_addr = lvl1_entry & PTE_PPN_MASK;
+            _deallocate_entries((uint32_t*)lvl2_table_phys_addr);
+            frame_free(1, lvl2_table_phys_addr);
+        }
+    }
+
+    frame_free(1, as->root_table_addr);
+    kfree(as);
+}
+
+/** Get physical address of root page table.
+ *
+ * The function should return complete physical address, i.e. not only PPN.
+ *
+ * @param as Address space to use.
+ * @return Physical address of root page table.
+ */
+uintptr_t as_get_root_page_table(as_t* as) {
+    return as->root_table_addr;
+}
+
+/**
+ * Assigns address space to a thread, and increases the spaces threads counter.
+ *
+ * @param as Address space to assign
+ * @param thread Thread to assign the space to
+ */
+void as_add_thread(as_t* as, thread_t* thread) {
+    thread->address_space = as;
+    as->using_threads++;
+}
+
+/**
+ * Removes address space from a thread, and decreses the spaces threads counter.
+ * If there are no threads using the space left, the space is destroyed
+ *
+ * @param as Address space to assign
+ * @param thread Thread to assign the space to
+ */
+void as_remove_thread(thread_t* thread) {
+    as_t* as = thread->address_space;
+    assert(as->using_threads != 0);
+
+    thread->address_space = NULL;
+    as->using_threads--;
+
+    if (as->using_threads == 0) {
+        as_destroy(as);
+    }
 }

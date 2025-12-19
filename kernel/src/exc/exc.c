@@ -10,6 +10,19 @@
 #include <exc.h>
 #include <proc/scheduler.h>
 
+/**
+ * Assembles the satp of the next scheduled thread's address space
+ */
+static unative_t get_next_satp() {
+    // TODO
+    // See Figure 4.14 of https://d3s.mff.cuni.cz/files/teaching/nswi200/202324/doc/riscv-spec-privileged.pdf
+    // For now ignore ASID, MODE depends on whether the thread belongs to an address space
+    // PPN is the root table's address >> 12
+
+    // Maybe there's a more appropriate file for this function
+    return 0;
+}
+
 /** Handles general exception.
  *
  * The function receives a pointer to an exception context, which
@@ -27,16 +40,4 @@ void handle_exception_general(exc_context_t* exc_context) {
     } else {
         machine_enter_debugger();
     }
-}
-
-/**
- * Assembles the satp of the next scheduled thread's address space
- */
-static unative_t get_next_satp() {
-    // TODO
-    // See Figure 4.14 of https://d3s.mff.cuni.cz/files/teaching/nswi200/202324/doc/riscv-spec-privileged.pdf
-    // For now ignore ASID, MODE depends on whether the thread belongs to an address space
-    // PPN is the root table's address >> 12
-
-    // Maybe there's a more appropriate file for this function
 }

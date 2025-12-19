@@ -32,6 +32,9 @@
 #define PAGE_NULL_COUNT 2
 #define AS_STACK_ADDRESS (1 << 13) // 8kB
 
+/* forward declaration */
+typedef struct thread thread_t;
+
 typedef struct as {
     size_t asid;
     uintptr_t root_table_addr;
