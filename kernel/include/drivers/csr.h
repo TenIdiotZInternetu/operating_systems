@@ -159,8 +159,8 @@ static inline unsigned int csr_scause_is_interrupt_pending(unative_t scause_valu
 static inline bool csr_scause_is_page_fault(unative_t scause_value) {
     unative_t exc_code = scause_value & (~RV_INTERRUPT_BIT);
     return exc_code == EXC_CODE_INSTRUCTION_PAGE_FAULT
-        || exc_code == EXC_CODE_STORE_PAGE_FAULT
-        || exc_code == EXC_CODE_LOAD_PAGE_FAULT;
+            || exc_code == EXC_CODE_STORE_PAGE_FAULT
+            || exc_code == EXC_CODE_LOAD_PAGE_FAULT;
 }
 
 #endif

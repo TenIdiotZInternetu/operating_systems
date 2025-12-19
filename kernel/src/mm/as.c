@@ -8,16 +8,39 @@
 #include <mm/heap.h>
 
 #define KERNEL_ADDRESS 0x80000000
-#define PTE_SIZE_BYTES 4
 
-#define PTE_VALIDITY_BITMASK 0x1
-#define PTE_PPN_MASK 0xFFFFF000
+#define PTE_VALID_BIT 0
+#define PTE_READ_BIT 1
+#define PTE_WRITE_BIT 2
+#define PTE_EXECUTE_BIT 3
+#define PTE_USERMODE_BIT 4
+#define PTE_GLOBAL_BIT 5
+#define PTE_ACCESSED_BIT 6
+#define PTE_DIRTY_BIT 7
+
+#define PTE_VALIDITY_MASK 1
+#define PTE_PPN_SIZE 20
+#define PTE_PPN_MASK ((1 << PTE_PPN_SIZE) - 1) << (PTE_SIZE_BITS - PTE_PPN_SIZE)
+#define PTE_VPN1_SIZE 10
+#define PTE_VPN2_SIZE 10
+#define PTE_VPN1_MASK ((1 << PTE_VPN1_SIZE) - 1) << (PTE_SIZE_BITS - PTE_VPN1_SIZE)
+#define PTE_VPN2_MASK ((1 << PTE_VPN2_SIZE) - 1) << (PTE_SIZE_BITS - PTE_VPN1_SIZE - PTE_VPN2_SIZE)
 
 /** Initializes support for address spaces.
  *
  * Called once at system boot.
  */
 void as_init(void) {
+}
+
+/**
+ * Invalidates all entries in new page table
+ * @param table_address Address of the initialized table
+ */
+static void _table_init(uint32_t* table_address) {
+    for (size_t i = 0; i < PAGES_PER_TABLE; ++i) {
+        table_address[i] = 0;
+    }
 }
 
 /** Create new address space of given size.
@@ -36,9 +59,10 @@ as_t* as_create(size_t size, unsigned int flags) {
         return NULL;
     }
 
-    address_space->size = PAGE_SIZE;
-    _add_lvl1_pte(&address_space, KERNEL_ADDRESS, KERNEL_ADDRESS, true);
-    _add_lvl2_pte(&address_space, PRINTER_ADDRESS, PRINTER_ADDRESS);
+    address_space->size = size;
+    _table_init((uint32_t*)address_space->root_table_addr);
+    _add_lvl1_pte(&address_space, KERNEL_ADDRESS, KERNEL_ADDRESS, true, false);
+    _add_lvl1_pte(&address_space, PRINTER_ADDRESS, PRINTER_ADDRESS, true, false);
     return &address_space;
 }
 
@@ -60,6 +84,22 @@ uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
     // TODO
 }
 
+/**
+ * Iterates through the table and deallocates frame for every valid page
+ * @param table_address Address of the table with entries to deallocate
+ *
+ */
+void _deallocate_entries(uint32_t* table_address) {
+    for (size_t i = 0; i < PAGES_PER_TABLE; ++i) {
+        uint32_t lvl2_entry = table_address[i];
+        bool entry_is_valid = lvl2_entry & PTE_VALIDITY_MASK;
+
+        if (entry_is_valid) {
+            frame_free(1, lvl2_entry & PTE_PPN_MASK);
+        }
+    }
+}
+
 /** Destroy a given address space, freeing all the memory.
  *
  * It is not expected that a user will call this function directly: an address
@@ -72,16 +112,18 @@ uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
  * the as_t structure.
  */
 void as_destroy(as_t* as) {
-    for (size_t i = 0; i < PAGE_SIZE; i += PTE_SIZE_BYTES) {
-        // TODO solve how to get the actual entry value from the root page table
-        uint32_t lvl1_entry;
-        bool entry_is_valid = lvl1_entry & PTE_VALIDITY_BITMASK;
-
+    size_t userspace_entries_count = KERNEL_ADDRESS / MEGAPAGE_SIZE;
+    for (size_t i = 0; i < userspace_entries_count; ++i) {
+        uint32_t lvl1_entry = ((uint32_t*)as->root_table_addr)[i];
+        bool entry_is_valid = lvl1_entry & PTE_VALIDITY_MASK;
         if (entry_is_valid) {
-            frame_free(1, lvl1_entry & PTE_PPN_MASK);
+            uintptr_t lvl2_table_phys_addr = lvl1_entry & PTE_PPN_MASK;
+            _deallocate_entries((uint32_t*)(lvl2_table_phys_addr));
+            frame_free(1, lvl2_table_phys_addr);
         }
     }
 
+    frame_free(1, as->root_table_addr);
     kfree(as);
 }
 
@@ -126,6 +168,33 @@ void as_remove_thread(thread_t* thread) {
     }
 }
 
+static size_t _lvl1_entry_index(uintptr_t virtual_addr) {
+    return (virtual_addr & PTE_VPN1_MASK) >> (PTE_SIZE_BITS - PTE_VPN1_SIZE);
+}
+
+static size_t _lvl2_entry_index(uintptr_t virtual_addr) {
+    return (virtual_addr & PTE_VPN2_MASK) >> (PTE_SIZE_BITS - PTE_VPN1_SIZE - PTE_VPN2_SIZE);
+}
+
+/**
+ *  Adds an entry to the first (root) level page table, and sets it to valid
+ *
+ *  @param page_table_address Address of the page table where to add the entry.
+ *  @param entry_index Index of the entry we want to add in the page table
+ *  @param phys_addr Physical address the entry should point to
+ *  @param is_leaf Whether the entry should be a leaf entry
+ *  @param userspace_access Whether the page should be accessible in userspace
+ */
+static void _add_pte(uintptr_t page_table_address, size_t entry_index, uintptr_t phys_addr, bool is_leaf, bool userspace_access) {
+    uint32_t* entry = (uint32_t*)page_table_address + entry_index;
+    *entry |= (1 << PTE_VALID_BIT);
+    *entry |= (is_leaf << PTE_READ_BIT);
+    *entry |= (is_leaf << PTE_WRITE_BIT);
+    *entry |= (is_leaf << PTE_EXECUTE_BIT);
+    *entry |= (userspace_access << PTE_USERMODE_BIT);
+    *entry |= phys_addr;
+}
+
 /**
  *  Adds an entry to the first (root) level page table, and sets it to valid
  *
@@ -136,8 +205,7 @@ void as_remove_thread(thread_t* thread) {
  *  @param userspace_access Whether the page will be accsessible from user mode
  */
 static void _add_lvl1_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr, bool is_leaf, bool userspace_access) {
-    // TODO
-    // For leaf entry see Table 4.5 of https://d3s.mff.cuni.cz/files/teaching/nswi200/202324/doc/riscv-spec-privileged.pdf
+    _add_pte(as->root_table_addr, _lvl1_entry_index(virtual_addr), phys_addr, is_leaf, userspace_access);
 }
 
 /**
@@ -153,7 +221,23 @@ static void _add_lvl1_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr,
  *  @retval ENOMEM Out of memory
  */
 static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr, bool userspace_access) {
-    // TODO
-    // reuse _add_lvl1_pte
-    return ENOIMPL;
+    uint32_t lvl1_entry = ((uint32_t*)as->root_table_addr)[_lvl1_entry_index(virtual_addr)];
+    bool has_lvl2_table = lvl1_entry & PTE_VALIDITY_MASK;
+    uintptr_t lvl2_table_address;
+
+    if (!has_lvl2_table) {
+        errno_t err = frame_alloc(1, &lvl2_table_address);
+        if (err == ENOMEM) {
+            return err;
+        }
+
+        _add_lvl1_pte(as, virtual_addr, lvl2_table_address, false, userspace_access);
+        _table_init((uint32_t*)lvl2_table_address);
+    } else {
+        lvl2_table_address = lvl1_entry & PTE_PPN_MASK;
+    }
+
+    _add_pte(lvl2_table_address, _lvl2_entry_index(virtual_addr), phys_addr, true, userspace_access);
+
+    return EOK;
 }
