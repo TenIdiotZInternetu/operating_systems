@@ -24,7 +24,7 @@
 #define PTE_VPN1_SIZE 10
 #define PTE_VPN2_SIZE 10
 #define PTE_VPN1_MASK ((1 << PTE_VPN1_SIZE) - 1) << (PTE_SIZE_BITS - PTE_VPN1_SIZE)
-#define PTE_VPN2_MASK ((1 << PTE_VPN1_SIZE) - 1) << (PTE_SIZE_BITS - PTE_VPN1_SIZE - PTE_VPN2_SIZE)
+#define PTE_VPN2_MASK ((1 << PTE_VPN2_SIZE) - 1) << (PTE_SIZE_BITS - PTE_VPN1_SIZE - PTE_VPN2_SIZE)
 
 /** Initializes support for address spaces.
  *
@@ -112,8 +112,8 @@ void _deallocate_entries(uint32_t* table_address) {
  * the as_t structure.
  */
 void as_destroy(as_t* as) {
-    size_t as_lvl1_entries_count = (as->size + PAGE_NULL_COUNT - 1) / MEGAPAGE_SIZE + 1;
-    for (size_t i = 0; i < as_lvl1_entries_count; ++i) {
+    size_t userspace_entries_count = KERNEL_ADDRESS / MEGAPAGE_SIZE;
+    for (size_t i = 0; i < userspace_entries_count; ++i) {
         uint32_t lvl1_entry = ((uint32_t*)as->root_table_addr)[i];
         bool entry_is_valid = lvl1_entry & PTE_VALIDITY_MASK;
         if (entry_is_valid) {
