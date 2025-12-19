@@ -202,6 +202,7 @@ static void _add_pte(uintptr_t page_table_address, size_t entry_index, uintptr_t
  *  @param virtual_addr Virtual address to map in the entry
  *  @param phys_addr Physical address the entry should point to
  *  @param is_leaf Whether the entry should be a leaf entry
+ *  @param userspace_access Whether the page will be accsessible from user mode
  */
 static void _add_lvl1_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr, bool is_leaf, bool userspace_access) {
     _add_pte(as->root_table_addr, _lvl1_entry_index(virtual_addr), phys_addr, is_leaf, userspace_access);
@@ -215,6 +216,7 @@ static void _add_lvl1_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_addr,
  *  @param as Address space to use.
  *  @param virtual_addr Virtual address to map in the entry
  *  @param phys_addr Physical address the entry should point to
+ *  @param userspace_access Whether the page will be accsessible from user mode
  *  @retval EOK Operation successful
  *  @retval ENOMEM Out of memory
  */
