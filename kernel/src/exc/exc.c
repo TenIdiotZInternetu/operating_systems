@@ -14,13 +14,18 @@
  * Assembles the satp of the next scheduled thread's address space
  */
 static unative_t get_next_satp() {
-    // TODO
     // See Figure 4.14 of https://d3s.mff.cuni.cz/files/teaching/nswi200/202324/doc/riscv-spec-privileged.pdf
     // For now ignore ASID, MODE depends on whether the thread belongs to an address space
     // PPN is the root table's address >> 12
 
-    // Maybe there's a more appropriate file for this function
-    return 0;
+    thread_t *p_thread_to_run = scheduler_get_thread_to_run();
+
+    unative_t mode = (p_thread_to_run->address_space == NULL)? 0 : 1;
+    unative_t ppn = p_thread_to_run->address_space->root_table_addr >> 12;
+    
+    unative_t ppn_mask = 0x3FFFFF;
+    
+    return (mode << 31) | (ppn & ppn_mask);
 }
 
 /** Handles general exception.
