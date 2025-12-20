@@ -57,4 +57,10 @@ static inline size_t addr_to_ppn(uintptr_t address) {
     return address >> PAGE_OFFSET_BITS;
 }
 
+static inline bool is_null_pages_access(uintptr_t address) {
+    return address < (PAGE_NULL_COUNT * PAGE_SIZE);
+}
+
+bool is_kernel_pages_access(uintptr_t address);
+
 #endif

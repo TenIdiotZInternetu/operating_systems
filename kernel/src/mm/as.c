@@ -7,6 +7,7 @@
 #include <mm/frame.h>
 #include <mm/heap.h>
 #include <adt/bitmap.h>
+#include "as.h"
 
 #define KERNEL_ADDRESS 0x80000000
 
@@ -234,12 +235,16 @@ uintptr_t as_get_root_page_table(as_t* as) {
     return as->root_table_addr;
 }
 
+bool is_kernel_pages_access(uintptr_t address) {
+    return address >= KERNEL_ADDRESS;
+}
+
 /**
- * Assigns address space to a thread, and increases the spaces threads counter.
- *
- * @param as Address space to assign
- * @param thread Thread to assign the space to
- */
+   * Assigns address space to a thread, and increases the spaces threads counter.
+   *
+   * @param as Address space to assign
+   * @param thread Thread to assign the space to
+   */
 void as_add_thread(as_t* as, thread_t* thread) {
     thread->address_space = as;
     as->using_threads++;
