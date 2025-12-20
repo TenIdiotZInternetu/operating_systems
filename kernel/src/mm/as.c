@@ -6,6 +6,7 @@
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
+#include <adt/bitmap.h>
 
 #define KERNEL_ADDRESS 0x80000000
 
@@ -155,8 +156,28 @@ size_t as_get_size(as_t* as) {
  * @retval NULL Out of memory
  */
 uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
-    // TODO
-    return 0;
+    uintptr_t frame_phys_address;
+
+    errno_t frame_alloc_err = frame_alloc(1, &frame_phys_address);
+    if (frame_alloc_err == ENOMEM) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+
+        uintptr_t entry_virt_addr = virtual_addr + (i * PAGE_SIZE);
+        uintptr_t entry_phys_addr = frame_phys_address + (i * FRAME_SIZE);
+
+        errno_t pte_add_err = _add_lvl2_pte(as, entry_virt_addr, entry_phys_addr, true);
+
+        if (pte_add_err == ENOMEM) {
+            frame_free(count, frame_phys_address);
+            return NULL;
+        }
+
+    }
+
+    return frame_phys_address;
 }
 
 /**
