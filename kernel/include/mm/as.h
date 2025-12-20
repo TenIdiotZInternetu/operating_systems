@@ -32,6 +32,8 @@
 #define PAGE_NULL_COUNT 2
 #define AS_STACK_ADDRESS (1 << 13) // 8kB
 
+#define NULL_PAGES_REGION_SIZE (PAGE_NULL_COUNT * PAGE_SIZE)
+
 /* forward declaration */
 typedef struct thread thread_t;
 
@@ -58,7 +60,11 @@ static inline size_t addr_to_ppn(uintptr_t address) {
 }
 
 static inline bool is_null_pages_access(uintptr_t address) {
-    return address < (PAGE_NULL_COUNT * PAGE_SIZE);
+    return address < (NULL_PAGES_REGION_SIZE);
+}
+
+static inline bool is_address_beyond_address_space(uintptr_t address, as_t *address_space) {
+    return address >= (NULL_PAGES_REGION_SIZE + address_space->size);
 }
 
 bool is_kernel_pages_access(uintptr_t address);
