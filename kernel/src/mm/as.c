@@ -158,7 +158,7 @@ size_t as_get_size(as_t* as) {
 uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
     uintptr_t frame_phys_address;
 
-    errno_t frame_alloc_err = frame_alloc(1, &frame_phys_address);
+    errno_t frame_alloc_err = frame_alloc(count, &frame_phys_address);
     if (frame_alloc_err == ENOMEM) {
         return 0;
     }
