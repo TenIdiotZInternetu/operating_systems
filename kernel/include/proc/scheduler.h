@@ -25,6 +25,7 @@ typedef struct {
 void scheduler_init(void);
 thread_t* scheduler_get_current_thread(void);
 thread_t* scheduler_get_previous_thread(void);
+thread_t* scheduler_get_thread_to_run(void);
 void scheduler_add_ready_thread(thread_t* thread);
 void scheduler_remove_thread(thread_t* thread);
 void scheduler_schedule_next(void);

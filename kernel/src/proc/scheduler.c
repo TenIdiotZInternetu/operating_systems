@@ -59,7 +59,7 @@ static bool _can_thread_run(thread_t* thread) {
 /**
  * Retrieves the first thread on the ready list.
  */
-static thread_t* _scheduler_get_thread_to_run(void) {
+thread_t* scheduler_get_thread_to_run(void) {
     return list_item(scheduler.ready_threads.head.next, thread_t, link);
 }
 
@@ -120,7 +120,7 @@ static void _unsafe_scheduler_schedule_next(void) {
         list_rotate(&scheduler.ready_threads);
     }
 
-    thread_t* p_next_thread = _scheduler_get_thread_to_run();
+    thread_t* p_next_thread = scheduler_get_thread_to_run();
 
     timer_interrupt_after(KERNEL_SCHEDULER_QUANTUM);
 
