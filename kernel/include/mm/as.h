@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <proc/thread.h>
 #include <types.h>
+#include <drivers/printer.h>
 
 /*
  * Setup amount of ASIDS that are actually supported by the hardware.
