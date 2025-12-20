@@ -7,7 +7,6 @@
 #include <mm/frame.h>
 #include <mm/heap.h>
 #include <adt/bitmap.h>
-#include "as.h"
 
 #define KERNEL_ADDRESS 0x80000000
 
