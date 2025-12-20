@@ -34,6 +34,8 @@
 
 #define NULL_PAGES_REGION_SIZE (PAGE_NULL_COUNT * PAGE_SIZE)
 
+#define PAGE_SIZE_ALIGNMENT_MASK ~(PAGE_SIZE - 1)
+
 /* forward declaration */
 typedef struct thread thread_t;
 
