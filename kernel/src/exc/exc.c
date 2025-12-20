@@ -49,6 +49,7 @@ void handle_exception_general(exc_context_t* exc_context) {
         if (is_kernel_pages_access(page_fault_address)
             || is_null_pages_access(page_fault_address)
             || is_address_beyond_address_space(page_fault_address, p_curr_thread_as)
+            || is_printer_pages_access(page_fault_address)
             || p_curr_thread_as == NULL
         ) {
             thread_kill(p_curr_thread);
