@@ -39,9 +39,31 @@ void handle_exception_general(exc_context_t* exc_context) {
         sv32_set_satp_tlb_shootdown(get_next_satp());
         scheduler_schedule_next();
     } else if (csr_scause_is_page_fault(exc_context->scause)) {
-        // TODO
         // Allocate new frame for the virtual address in context->stval
         // or kill the thread if it accesses NULL pages or kernel pages
+
+        uintptr_t page_fault_address = exc_context->stval;
+        thread_t *p_curr_thread = scheduler_get_current_thread();
+        as_t *p_curr_thread_as = p_curr_thread->address_space;
+
+        if (is_kernel_pages_access(page_fault_address)
+            || is_null_pages_access(page_fault_address)
+            || is_address_beyond_address_space(page_fault_address, p_curr_thread_as)
+            || p_curr_thread_as == NULL
+        ) {
+            thread_kill(p_curr_thread);
+            scheduler_schedule_next();
+            return;
+        }
+
+        uintptr_t aligned_page_fault_address = page_fault_address & PAGE_SIZE_ALIGNMENT_MASK;
+
+        uintptr_t alloc_frame_phys_address = as_alloc_page(p_curr_thread_as, aligned_page_fault_address, 1);
+
+        if (alloc_frame_phys_address == 0) {
+            thread_kill(p_curr_thread);
+            scheduler_schedule_next();
+        }
     } else {
         machine_enter_debugger();
     }
