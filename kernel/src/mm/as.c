@@ -160,7 +160,7 @@ uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
 
     errno_t frame_alloc_err = frame_alloc(1, &frame_phys_address);
     if (frame_alloc_err == ENOMEM) {
-        return NULL;
+        return 0;
     }
 
     for (size_t i = 0; i < count; ++i) {
@@ -172,7 +172,7 @@ uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
 
         if (pte_add_err == ENOMEM) {
             frame_free(count, frame_phys_address);
-            return NULL;
+            return 0;
         }
 
     }
