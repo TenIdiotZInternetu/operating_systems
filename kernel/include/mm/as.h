@@ -72,7 +72,7 @@ static inline bool is_address_beyond_address_space(uintptr_t address, as_t *addr
 bool is_kernel_pages_access(uintptr_t address);
 
 static inline bool is_printer_pages_access(uintptr_t address) {
-    return (address >= PRINTER_ADDRESS) && (address <= (PRINTER_ADDRESS + MEGAPAGE_SIZE));
+    return (address >= PRINTER_ADDRESS) && (address < (PRINTER_ADDRESS + MEGAPAGE_SIZE));
 }
 
 #endif
