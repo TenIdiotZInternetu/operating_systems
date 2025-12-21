@@ -305,7 +305,17 @@ errno_t thread_join(thread_t* thread, void** retval) {
         thread_yield();
     }
 
+    bool interrupts_enabled = interrupts_disable();
+    errno_t err = _release_resources_on_join(thread, retval);
+    interrupts_restore(interrupts_enabled);
+    return err;
+}
+
+static errno_t _release_resources_on_join(thread_t* thread, void** retval) {
+    safe_list_remove(&thread->link);
+
     if (thread->state == KILLED) {
+        kfree(thread);
         return EKILLED;
     }
 
@@ -313,7 +323,6 @@ errno_t thread_join(thread_t* thread, void** retval) {
         *retval = thread->return_value;
     }
 
-    safe_list_remove(&thread->link);
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
     as_remove_thread(thread);
     kfree(thread);
