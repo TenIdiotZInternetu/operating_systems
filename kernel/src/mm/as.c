@@ -111,7 +111,7 @@ static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_ad
         _add_lvl1_pte(as, virtual_addr, lvl2_table_address, false, userspace_access);
         _table_init((uint32_t*)lvl2_table_address);
     } else {
-        lvl2_table_address = lvl1_entry & PTE_PPN_MASK;
+        lvl2_table_address = (lvl1_entry & PTE_PPN_MASK) << 2;
     }
 
     _add_pte(lvl2_table_address, _lvl2_entry_index(virtual_addr), phys_addr, true, userspace_access);
@@ -200,7 +200,8 @@ static void _deallocate_entries(uint32_t* table_address) {
         bool entry_is_valid = lvl2_entry & PTE_VALIDITY_MASK;
 
         if (entry_is_valid) {
-            frame_free(1, lvl2_entry & PTE_PPN_MASK);
+            uintptr_t phys_addr = (lvl2_entry & PTE_PPN_MASK) << 2;
+            frame_free(1, phys_addr);
         }
     }
 }
