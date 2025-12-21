@@ -81,6 +81,6 @@ static inline bool is_printer_pages_access(uintptr_t address) {
     return (address >= PRINTER_ADDRESS) && (address < (PRINTER_ADDRESS + MEGAPAGE_SIZE));
 }
 
-bool is_illegal_memory_access(uintptr_t address, thread_t *thread);
+bool is_illegal_memory_access(uintptr_t address, as_t *address_space);
 
 #endif

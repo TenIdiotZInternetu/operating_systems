@@ -8,8 +8,6 @@
 #include <mm/heap.h>
 #include <adt/bitmap.h>
 
-#define KERNEL_ADDRESS 0x80000000
-
 #define PTE_VALID_BIT 0
 #define PTE_READ_BIT 1
 #define PTE_WRITE_BIT 2
@@ -265,10 +263,10 @@ void as_remove_thread(thread_t* thread) {
 }
 
 
-bool is_illegal_memory_access(uintptr_t address, thread_t *thread) {
-    thread == NULL
-    || is_kernel_pages_access(address)
-    || is_null_pages_access(address)
-    || is_printer_pages_access(address)
-    || is_address_beyond_address_space(address, thread);
+bool is_illegal_memory_access(uintptr_t address, as_t *address_space) {
+    return address_space == NULL
+        || is_kernel_pages_access(address)
+        || is_null_pages_access(address)
+        || is_printer_pages_access(address)
+        || is_address_beyond_address_space(address, address_space);
 }

@@ -50,7 +50,7 @@ void handle_exception_general(exc_context_t* exc_context) {
         thread_t *p_curr_thread = scheduler_get_current_thread();
         as_t *p_curr_thread_as = p_curr_thread->address_space;
 
-        if (is_illegal_memory_access(page_fault_address, p_curr_thread)) {
+        if (is_illegal_memory_access(page_fault_address, p_curr_thread_as)) {
             thread_kill(p_curr_thread);
             scheduler_schedule_next();
             return;
