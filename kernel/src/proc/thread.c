@@ -92,7 +92,7 @@ static errno_t _thread_create_base_impl(thread_t** thread_out, thread_entry_func
  * @retval ENOMEM Not enough memory to complete the operation.
  * @retval EINVAL Invalid flags (unused).
  */
-errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
+static errno_t _thread_create_unsafe(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
     errno_t err = _thread_create_base_impl(thread_out, entry, data, flags, name);
     if (err != EOK) {
         return err;
@@ -103,6 +103,13 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
         as_add_thread(p_cur_thread->address_space, *thread_out);
     }
     return EOK;
+}
+
+errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
+    bool disabled = interrupts_disable();
+    errno_t err = _thread_create_unsafe(thread_out, entry, data, flags, name);
+    interrupts_restore(disabled);
+    return err;
 }
 
 /** Create a new thread with new address space.
@@ -123,7 +130,7 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
  * @retval ENOMEM Not enough memory to complete the operation.
  * @retval EINVAL Invalid flags (unused).
  */
-errno_t thread_create_new_as(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name, size_t as_size) {
+static errno_t _thread_create_new_as_unsafe(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name, size_t as_size) {
     errno_t err = _thread_create_base_impl(thread_out, entry, data, flags, name);
     if (err != EOK) {
         return err;
@@ -139,6 +146,13 @@ errno_t thread_create_new_as(thread_t** thread_out, thread_entry_func_t entry, v
     // TODO Check for available memory and prevent leaks
     as_add_thread(new_address_space, *thread_out);
     return EOK;
+}
+
+errno_t thread_create_new_as(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name, size_t as_size) {
+    bool disabled = interrupts_disable();
+    errno_t err = _thread_create_new_as_unsafe(thread_out, entry, data, flags, name, as_size);
+    interrupts_restore(disabled);
+    return err;
 }
 
 /** Return information about currently executing thread.
