@@ -66,8 +66,9 @@ static void _add_pte(uintptr_t page_table_address, size_t entry_index, uintptr_t
     *entry |= (is_leaf << PTE_WRITE_BIT);
     *entry |= (is_leaf << PTE_EXECUTE_BIT);
     *entry |= (userspace_access << PTE_USERMODE_BIT);
-    *entry |= phys_addr;
+    *entry |= (phys_addr >> 2);
 }
+
 
 /**
  *  Adds an entry to the first (root) level page table, and sets it to valid
