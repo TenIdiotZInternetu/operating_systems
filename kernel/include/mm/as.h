@@ -23,6 +23,9 @@
 #define HARDWARE_ASIDS_MAX 512
 #endif
 
+#define KERNEL_ADDRESS 0x80000000
+
+
 #define PAGE_OFFSET_BITS 12
 #define PAGE_SIZE 4096
 #define PTE_SIZE_BYTES 4
@@ -70,7 +73,9 @@ static inline bool is_address_beyond_address_space(uintptr_t address, as_t *addr
     return address >= (NULL_PAGES_REGION_SIZE + address_space->size);
 }
 
-bool is_kernel_pages_access(uintptr_t address);
+static inline bool is_kernel_pages_access(uintptr_t address) {
+    return address >= KERNEL_ADDRESS;
+}
 
 static inline bool is_printer_pages_access(uintptr_t address) {
     return (address >= PRINTER_ADDRESS) && (address < (PRINTER_ADDRESS + MEGAPAGE_SIZE));

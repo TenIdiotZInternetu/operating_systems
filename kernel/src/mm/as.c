@@ -234,10 +234,6 @@ uintptr_t as_get_root_page_table(as_t* as) {
     return as->root_table_addr;
 }
 
-bool is_kernel_pages_access(uintptr_t address) {
-    return address >= KERNEL_ADDRESS;
-}
-
 /**
    * Assigns address space to a thread, and increases the spaces threads counter.
    *
