@@ -27,9 +27,8 @@ static unative_t get_next_satp() {
     unative_t mode = 1;
     unative_t ppn = p_thread_to_run->address_space->root_table_addr >> 12;
     
-    unative_t ppn_mask = 0x3FFFFF;
     
-    return (mode << 31) | (ppn & ppn_mask);
+    return (mode << 31) | ppn;
 }
 
 /** Handles general exception.
