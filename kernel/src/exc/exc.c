@@ -20,7 +20,11 @@ static unative_t get_next_satp() {
 
     thread_t *p_thread_to_run = scheduler_get_thread_to_run();
 
-    unative_t mode = (p_thread_to_run->address_space == NULL)? 0 : 1;
+    if (p_thread_to_run->address_space == NULL) {
+        return 0;
+    }
+
+    unative_t mode = 1;
     unative_t ppn = p_thread_to_run->address_space->root_table_addr >> 12;
     
     unative_t ppn_mask = 0x3FFFFF;
@@ -43,14 +47,15 @@ void handle_exception_general(exc_context_t* exc_context) {
         // or kill the thread if it accesses NULL pages or kernel pages
 
         uintptr_t page_fault_address = exc_context->stval;
+
         thread_t *p_curr_thread = scheduler_get_current_thread();
         as_t *p_curr_thread_as = p_curr_thread->address_space;
 
-        if (is_kernel_pages_access(page_fault_address)
+        if (p_curr_thread_as == NULL
+            || is_kernel_pages_access(page_fault_address)
             || is_null_pages_access(page_fault_address)
-            || is_address_beyond_address_space(page_fault_address, p_curr_thread_as)
             || is_printer_pages_access(page_fault_address)
-            || p_curr_thread_as == NULL
+            || is_address_beyond_address_space(page_fault_address, p_curr_thread_as)
         ) {
             thread_kill(p_curr_thread);
             scheduler_schedule_next();
