@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2019 Charles University
 
+#include <adt/bitmap.h>
 #include <drivers/printer.h>
 #include <errno.h>
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
-#include <adt/bitmap.h>
 
 #define PTE_VALID_BIT 0
 #define PTE_READ_BIT 1
@@ -70,7 +70,6 @@ static void _add_pte(uintptr_t page_table_address, size_t entry_index, uintptr_t
     *entry |= (userspace_access << PTE_USERMODE_BIT);
     *entry |= (phys_addr >> 2);
 }
-
 
 /**
  *  Adds an entry to the first (root) level page table, and sets it to valid
@@ -136,17 +135,13 @@ as_t* as_create(size_t size, unsigned int flags) {
     }
 
     address_space->size = size;
-    address_space->using_threads = 1;
     address_space->asid = 0;
 
     _table_init((uint32_t*)address_space->root_table_addr);
-    
     _add_lvl1_pte(address_space, KERNEL_ADDRESS, KERNEL_ADDRESS, true, false);
-
     _add_lvl1_pte(address_space, PRINTER_ADDRESS, PRINTER_ADDRESS, true, false);
+    _add_lvl1_pte(address_space, LOADER_CODE_ADDRESS, LOADER_CODE_ADDRESS, true, false);
 
-    _add_lvl2_pte(address_space, LOADER_CODE_ADDRESS, LOADER_CODE_ADDRESS, false);
-    
     return address_space;
 }
 
@@ -183,7 +178,6 @@ uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
             frame_free(count, frame_phys_address);
             return 0;
         }
-
     }
 
     return frame_phys_address;
@@ -245,11 +239,11 @@ uintptr_t as_get_root_page_table(as_t* as) {
 }
 
 /**
-   * Assigns address space to a thread, and increases the spaces threads counter.
-   *
-   * @param as Address space to assign
-   * @param thread Thread to assign the space to
-   */
+ * Assigns address space to a thread, and increases the spaces threads counter.
+ *
+ * @param as Address space to assign
+ * @param thread Thread to assign the space to
+ */
 void as_add_thread(as_t* as, thread_t* thread) {
     thread->address_space = as;
     as->using_threads++;
@@ -274,11 +268,10 @@ void as_remove_thread(thread_t* thread) {
     }
 }
 
-
-bool is_illegal_memory_access(uintptr_t address, as_t *address_space) {
+bool is_illegal_memory_access(uintptr_t address, as_t* address_space) {
     return address_space == NULL
-        || is_kernel_pages_access(address)
-        || is_null_pages_access(address)
-        || is_printer_pages_access(address)
-        || is_address_beyond_address_space(address, address_space);
+            || is_kernel_pages_access(address)
+            || is_null_pages_access(address)
+            || is_printer_pages_access(address)
+            || is_address_beyond_address_space(address, address_space);
 }
