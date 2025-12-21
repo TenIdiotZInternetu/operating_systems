@@ -253,6 +253,24 @@ static bool _thread_is_valid(thread_t* thread) {
     return thread != NULL && thread != thread_get_current() && thread->is_initialized;
 }
 
+static errno_t _release_resources_on_join(thread_t* thread, void** retval) {
+    safe_list_remove(&thread->link);
+
+    if (thread->state == KILLED) {
+        kfree(thread);
+        return EKILLED;
+    }
+
+    if (retval != NULL) {
+        *retval = thread->return_value;
+    }
+
+    frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
+    as_remove_thread(thread);
+    kfree(thread);
+    return EOK;
+}
+
 /** Joins another thread (waits for it to terminate).
  *
  * Calling thread_join blocks until the thread we are joining
@@ -311,24 +329,6 @@ errno_t thread_join(thread_t* thread, void** retval) {
     return err;
 }
 
-static errno_t _release_resources_on_join(thread_t* thread, void** retval) {
-    safe_list_remove(&thread->link);
-
-    if (thread->state == KILLED) {
-        kfree(thread);
-        return EKILLED;
-    }
-
-    if (retval != NULL) {
-        *retval = thread->return_value;
-    }
-
-    frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
-    as_remove_thread(thread);
-    kfree(thread);
-    return EOK;
-}
-
 /** Switch CPU context to a different thread.
  *
  * Note that this function must work even if there is no current thread
@@ -379,6 +379,7 @@ errno_t thread_kill(thread_t* thread) {
         scheduler_remove_thread(thread);
     }
 
+    as_remove_thread(thread);
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
     thread->state = KILLED;
 

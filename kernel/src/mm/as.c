@@ -110,7 +110,7 @@ static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_ad
         _add_lvl1_pte(as, virtual_addr, lvl2_table_address, false, userspace_access);
         _table_init((uint32_t*)lvl2_table_address);
     } else {
-        lvl2_table_address = (lvl1_entry & PTE_PPN_MASK) << 2;
+        lvl2_table_address = lvl1_entry & PTE_PPN_MASK;
     }
 
     _add_pte(lvl2_table_address, _lvl2_entry_index(virtual_addr), phys_addr, true, userspace_access);
@@ -136,6 +136,7 @@ as_t* as_create(size_t size, unsigned int flags) {
 
     address_space->size = size;
     address_space->asid = 0;
+    address_space->using_threads = 0;
 
     _table_init((uint32_t*)address_space->root_table_addr);
     _add_lvl1_pte(address_space, KERNEL_ADDRESS, KERNEL_ADDRESS, true, false);
@@ -194,7 +195,7 @@ static void _deallocate_entries(uint32_t* table_address) {
         bool entry_is_valid = lvl2_entry & PTE_VALIDITY_MASK;
 
         if (entry_is_valid) {
-            uintptr_t phys_addr = (lvl2_entry & PTE_PPN_MASK) << 2;
+            uintptr_t phys_addr = lvl2_entry & PTE_PPN_MASK;
             frame_free(1, phys_addr);
         }
     }
@@ -245,8 +246,10 @@ uintptr_t as_get_root_page_table(as_t* as) {
  * @param thread Thread to assign the space to
  */
 void as_add_thread(as_t* as, thread_t* thread) {
+    bool enabled = interrupts_disable();
     thread->address_space = as;
     as->using_threads++;
+    interrupts_restore(enabled);
 }
 
 /**
@@ -257,6 +260,7 @@ void as_add_thread(as_t* as, thread_t* thread) {
  * @param thread Thread to assign the space to
  */
 void as_remove_thread(thread_t* thread) {
+    bool enabled = interrupts_disable();
     as_t* as = thread->address_space;
     assert(as->using_threads != 0);
 
@@ -266,6 +270,7 @@ void as_remove_thread(thread_t* thread) {
     if (as->using_threads == 0) {
         as_destroy(as);
     }
+    interrupts_restore(enabled);
 }
 
 bool is_illegal_memory_access(uintptr_t address, as_t* address_space) {
