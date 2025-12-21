@@ -25,6 +25,8 @@
 #define PTE_VPN1_MASK ((1 << PTE_VPN1_SIZE) - 1) << (PTE_SIZE_BITS - PTE_VPN1_SIZE)
 #define PTE_VPN2_MASK ((1 << PTE_VPN2_SIZE) - 1) << (PTE_SIZE_BITS - PTE_VPN1_SIZE - PTE_VPN2_SIZE)
 
+#define LOADER_CODE_ADDRESS 0xF0000000
+
 /** Initializes support for address spaces.
  *
  * Called once at system boot.
@@ -134,9 +136,17 @@ as_t* as_create(size_t size, unsigned int flags) {
     }
 
     address_space->size = size;
+    address_space->using_threads = 1;
+    address_space->asid = 0;
+
     _table_init((uint32_t*)address_space->root_table_addr);
+    
     _add_lvl1_pte(address_space, KERNEL_ADDRESS, KERNEL_ADDRESS, true, false);
+
     _add_lvl1_pte(address_space, PRINTER_ADDRESS, PRINTER_ADDRESS, true, false);
+
+    _add_lvl2_pte(address_space, LOADER_CODE_ADDRESS, LOADER_CODE_ADDRESS, false);
+    
     return address_space;
 }
 
