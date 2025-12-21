@@ -52,7 +52,6 @@ void handle_exception_general(exc_context_t* exc_context) {
 
         if (is_illegal_memory_access(page_fault_address, p_curr_thread_as)) {
             thread_kill(p_curr_thread);
-            scheduler_schedule_next();
             return;
         }
 
@@ -62,7 +61,6 @@ void handle_exception_general(exc_context_t* exc_context) {
 
         if (alloc_frame_phys_address == 0) {
             thread_kill(p_curr_thread);
-            scheduler_schedule_next();
         }
     } else {
         machine_enter_debugger();
