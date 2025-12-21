@@ -42,26 +42,7 @@ static void _thread_execute() {
     thread_finish(retval);
 }
 
-/** Create a new thread.
- *
- * The thread is automatically placed into the queue of ready threads.
- *
- * This function allocates space for both stack and the thread_t structure
- * (hence the double <code>**</code> in <code>thread_out</code>).
- *
- * This thread will use the same address space as the current one.
- *
- * @param thread_out Where to place the initialized thread_t structure.
- * @param entry Thread entry function.
- * @param data Data for the entry function.
- * @param flags Flags (unused).
- * @param name Thread name (for debugging purposes).
- * @return Error code.
- * @retval EOK Thread was created and started (added to ready queue).
- * @retval ENOMEM Not enough memory to complete the operation.
- * @retval EINVAL Invalid flags (unused).
- */
-errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
+static errno_t _thread_create_base_impl(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
     thread_t* p_thread = kmalloc(sizeof(thread_t));
     if (p_thread == NULL) {
         return ENOMEM;
@@ -83,17 +64,44 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
     p_thread->joined_by_thread = NULL;
     p_thread->is_initialized = true;
 
-    thread_t* p_cur_thread = thread_get_current();
-    if (p_cur_thread != NULL) {
-        as_add_thread(p_cur_thread->address_space, p_thread);
-    }
-
     link_init(&p_thread->link);
     _thread_set_name(p_thread, name);
 
     scheduler_add_ready_thread(p_thread);
 
     *thread_out = p_thread;
+    return EOK;
+}
+
+/** Create a new thread.
+ *
+ * The thread is automatically placed into the queue of ready threads.
+ *
+ * This function allocates space for both stack and the thread_t structure
+ * (hence the double <code>**</code> in <code>thread_out</code>).
+ *
+ * This thread will use the same address space as the current one.
+ *
+ * @param thread_out Where to place the initialized thread_t structure.
+ * @param entry Thread entry function.
+ * @param data Data for the entry function.
+ * @param flags Flags (unused).
+ * @param name Thread name (for debugging purposes).
+ * @return Error code.
+ * @retval EOK Thread was created and started (added to ready queue).
+ * @retval ENOMEM Not enough memory to complete the operation.
+ * @retval EINVAL Invalid flags (unused).
+ */
+errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name) {
+    errno_t err = _thread_create_base_impl(thread_out, entry, data, flags, name);
+    if (err != EOK) {
+        return err;
+    }
+    
+    thread_t* p_cur_thread = thread_get_current();
+    if (p_cur_thread != NULL) {
+        as_add_thread(p_cur_thread->address_space, *thread_out);
+    }
     return EOK;
 }
 
@@ -116,8 +124,10 @@ errno_t thread_create(thread_t** thread_out, thread_entry_func_t entry, void* da
  * @retval EINVAL Invalid flags (unused).
  */
 errno_t thread_create_new_as(thread_t** thread_out, thread_entry_func_t entry, void* data, unsigned int flags, const char* name, size_t as_size) {
-    // TODO Decompose shared code of thread_create, to avoid allocating 2 stacks
-    thread_create(thread_out, entry, data, flags, name);
+    errno_t err = _thread_create_base_impl(thread_out, entry, data, flags, name);
+    if (err != EOK) {
+        return err;
+    }
 
     as_t* new_address_space = as_create(as_size, 0);
     if (new_address_space == NULL) {
@@ -127,9 +137,6 @@ errno_t thread_create_new_as(thread_t** thread_out, thread_entry_func_t entry, v
     }
 
     // TODO Check for available memory and prevent leaks
-    // also check if this is correct, i am really not sure
-    uintptr_t stack_address = as_alloc_page(new_address_space, AS_STACK_ADDRESS, 2);
-    (*thread_out)->stack_location = stack_address;
     as_add_thread(new_address_space, *thread_out);
     return EOK;
 }
@@ -319,6 +326,7 @@ void thread_switch_to(thread_t* thread) {
         prev_context = &prev->context;
     }
 
+    sv32_set_satp_tlb_shootdown(get_next_satp());
     cpu_switch_context(prev_context, &thread->context);
 }
 

@@ -18,7 +18,7 @@
 #define PTE_DIRTY_BIT 7
 
 #define PTE_VALIDITY_MASK 1
-#define PTE_PPN_SIZE 20
+#define PTE_PPN_SIZE 22
 #define PTE_PPN_MASK ((1 << PTE_PPN_SIZE) - 1) << (PTE_SIZE_BITS - PTE_PPN_SIZE)
 #define PTE_VPN1_SIZE 10
 #define PTE_VPN2_SIZE 10
@@ -66,7 +66,7 @@ static void _add_pte(uintptr_t page_table_address, size_t entry_index, uintptr_t
     *entry |= (is_leaf << PTE_WRITE_BIT);
     *entry |= (is_leaf << PTE_EXECUTE_BIT);
     *entry |= (userspace_access << PTE_USERMODE_BIT);
-    *entry |= phys_addr;
+    *entry |= (phys_addr >> 2);
 }
 
 /**

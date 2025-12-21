@@ -10,6 +10,8 @@
 
 void handle_exception_general(exc_context_t* exc_context);
 
+unative_t get_next_satp(void);
+
 /** Disables all interrupts (on the CPU) and returns the previous state.
  *
  * Saves and returns the value of bit 1 (SIE) of sstatus CSR prior

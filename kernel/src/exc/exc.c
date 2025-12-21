@@ -13,7 +13,7 @@
 /**
  * Assembles the satp of the next scheduled thread's address space
  */
-static unative_t get_next_satp() {
+unative_t get_next_satp(void) {
     // See Figure 4.14 of https://d3s.mff.cuni.cz/files/teaching/nswi200/202324/doc/riscv-spec-privileged.pdf
     // For now ignore ASID, MODE depends on whether the thread belongs to an address space
     // PPN is the root table's address >> 12
