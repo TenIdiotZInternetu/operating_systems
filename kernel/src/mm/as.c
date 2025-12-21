@@ -267,3 +267,12 @@ void as_remove_thread(thread_t* thread) {
         as_destroy(as);
     }
 }
+
+
+bool is_illegal_memory_access(uintptr_t address, thread_t *thread) {
+    thread == NULL
+    || is_kernel_pages_access(address)
+    || is_null_pages_access(address)
+    || is_printer_pages_access(address)
+    || is_address_beyond_address_space(address, thread);
+}
