@@ -17,6 +17,8 @@
  */
 #define CSR_SSTATUS_SIE 0x2
 
+#define CSR_SSTATUS_SUM 1 << 18
+
 /** The CSR number of the MEPC (machine exception program counter) CSR */
 #define CSR_MEPC 0x341
 /** The CSR number of the MCAUSE (machine cause) CSR */
@@ -158,6 +160,7 @@ static inline unsigned int csr_scause_is_interrupt_pending(unative_t scause_valu
 
 static inline bool csr_scause_is_page_fault(unative_t scause_value) {
     unative_t exc_code = scause_value & (~RV_INTERRUPT_BIT);
+    printk("EXC: %d\n", exc_code);
     return exc_code == EXC_CODE_INSTRUCTION_PAGE_FAULT
             || exc_code == EXC_CODE_STORE_PAGE_FAULT
             || exc_code == EXC_CODE_LOAD_PAGE_FAULT;

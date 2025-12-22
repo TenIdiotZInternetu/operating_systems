@@ -60,9 +60,9 @@ void handle_exception_general(exc_context_t* exc_context) {
 
         uintptr_t alloc_frame_phys_address = as_alloc_page(p_curr_thread_as, aligned_page_fault_address, 1);
         ++alloc;
-        printk("%d\n", alloc);
+        printk("%p\n", page_fault_address);
 
-        if (alloc_frame_phys_address == 0) {
+        if (alloc_frame_phys_address == ENOMEM) {
             thread_kill(p_curr_thread);
         }
     } else {

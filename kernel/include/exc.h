@@ -44,4 +44,8 @@ static inline void interrupts_restore(bool enable) {
     }
 }
 
+static inline void set_SUM() {
+    csr_set(sstatus, CSR_SSTATUS_SUM);
+}
+
 #endif

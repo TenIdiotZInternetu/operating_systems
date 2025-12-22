@@ -27,6 +27,8 @@
 
 #define LOADER_CODE_ADDRESS 0xF0000000
 
+// TODO - thread_kill interrupts, deallocation of main table
+
 /** Initializes support for address spaces.
  *
  * Called once at system boot.
@@ -63,11 +65,15 @@ static size_t _lvl2_entry_index(uintptr_t virtual_addr) {
  */
 static void _add_pte(uintptr_t page_table_address, size_t entry_index, uintptr_t phys_addr, bool is_leaf, bool userspace_access) {
     uint32_t* entry = (uint32_t*)page_table_address + entry_index;
+    printk("ROOT ADDR: %p\n, ", page_table_address);
+    printk("ENTRY: %p\n, ", *entry);
     *entry |= (1 << PTE_VALID_BIT);
     *entry |= (is_leaf << PTE_READ_BIT);
     *entry |= (is_leaf << PTE_WRITE_BIT);
     *entry |= (is_leaf << PTE_EXECUTE_BIT);
     *entry |= (userspace_access << PTE_USERMODE_BIT);
+    // *entry |= (1 << PTE_DIRTY_BIT);
+    // *entry |= (1 << PTE_ACCESSED_BIT);
     *entry |= (phys_addr >> 2);
 }
 
@@ -110,7 +116,7 @@ static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_ad
         _add_lvl1_pte(as, virtual_addr, lvl2_table_address, false, userspace_access);
         _table_init((uint32_t*)lvl2_table_address);
     } else {
-        lvl2_table_address = lvl1_entry & PTE_PPN_MASK;
+        lvl2_table_address = (lvl1_entry & PTE_PPN_MASK) << 2;
     }
 
     _add_pte(lvl2_table_address, _lvl2_entry_index(virtual_addr), phys_addr, true, userspace_access);
@@ -158,14 +164,14 @@ size_t as_get_size(as_t* as) {
  * @param virtual_addr Virtual address to map the frames to
  * @param count Amount of frames to allocate
  * @return The physical address of the allocated frame
- * @retval NULL Out of memory
+ * @retval ENOMEM Out of memory
  */
 uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
     uintptr_t frame_phys_address;
 
     errno_t frame_alloc_err = frame_alloc(count, &frame_phys_address);
     if (frame_alloc_err == ENOMEM) {
-        return 0;
+        return ENOMEM;
     }
 
     for (size_t i = 0; i < count; ++i) {
@@ -177,7 +183,7 @@ uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
 
         if (pte_add_err == ENOMEM) {
             frame_free(count, frame_phys_address);
-            return 0;
+            return ENOMEM;
         }
     }
 
@@ -195,7 +201,7 @@ static void _deallocate_entries(uint32_t* table_address) {
         bool entry_is_valid = lvl2_entry & PTE_VALIDITY_MASK;
 
         if (entry_is_valid) {
-            uintptr_t phys_addr = lvl2_entry & PTE_PPN_MASK;
+            uintptr_t phys_addr = (lvl2_entry & PTE_PPN_MASK) << 2;
             frame_free(1, phys_addr);
         }
     }
@@ -213,18 +219,20 @@ static void _deallocate_entries(uint32_t* table_address) {
  * the as_t structure.
  */
 void as_destroy(as_t* as) {
+    printk("DESTROY\n");
     size_t userspace_entries_count = KERNEL_ADDRESS / MEGAPAGE_SIZE;
     for (size_t i = 0; i < userspace_entries_count; ++i) {
         uint32_t lvl1_entry = ((uint32_t*)as->root_table_addr)[i];
         bool entry_is_valid = lvl1_entry & PTE_VALIDITY_MASK;
         if (entry_is_valid) {
-            uintptr_t lvl2_table_phys_addr = lvl1_entry & PTE_PPN_MASK;
+            uintptr_t lvl2_table_phys_addr = (lvl1_entry & PTE_PPN_MASK) << 2;
+            printk("ADDR: %x\n", lvl2_table_phys_addr);
             _deallocate_entries((uint32_t*)lvl2_table_phys_addr);
             frame_free(1, lvl2_table_phys_addr);
         }
     }
 
-    frame_free(1, as->root_table_addr);
+    // frame_free(1, as->root_table_addr);
     kfree(as);
 }
 
@@ -262,6 +270,7 @@ void as_add_thread(as_t* as, thread_t* thread) {
 void as_remove_thread(thread_t* thread) {
     bool enabled = interrupts_disable();
     as_t* as = thread->address_space;
+     printk("USING: %d\n", as->using_threads);
     assert(as->using_threads != 0);
 
     thread->address_space = NULL;

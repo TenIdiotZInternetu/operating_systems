@@ -35,7 +35,9 @@ static void thread_init_stack(thread_t* thread) {
  */
 static void _thread_execute() {
     thread_t* thread_to_execute = thread_get_current();
+    set_SUM();
     interrupts_restore(true);
+
 
     void* retval = thread_to_execute->entry_func(thread_to_execute->first_arg);
 
@@ -63,6 +65,7 @@ static errno_t _thread_create_base_impl(thread_t** thread_out, thread_entry_func
     p_thread->context.ra = (unative_t)_thread_execute;
     p_thread->joined_by_thread = NULL;
     p_thread->is_initialized = true;
+    p_thread->address_space = NULL;
 
     link_init(&p_thread->link);
     _thread_set_name(p_thread, name);
