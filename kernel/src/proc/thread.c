@@ -172,11 +172,17 @@ void thread_yield(void) {
 }
 
 /** Current thread stops execution and is not scheduled until woken up. */
-void thread_suspend(void) {
+static void _thread_suspend_unsafe(void) {
     thread_t* thread = thread_get_current();
     thread->state = SUSPENDED;
     scheduler_remove_thread(thread);
     thread_yield();
+}
+
+void thread_suspend(void) {
+    bool enabled = interrupts_disable();
+    _thread_suspend_unsafe();
+    interrupts_restore(enabled);
 }
 
 /** Terminate currently running thread.
@@ -373,7 +379,7 @@ as_t* thread_get_as(thread_t* thread) {
  * @retval EOK Thread was killed.
  * @retval EEXITED Thread already finished its execution.
  */
-errno_t thread_kill(thread_t* thread) {
+static errno_t _thread_kill_unsafe(thread_t* thread) {
     if (thread_has_finished(thread)) {
         return EEXITED;
     }
@@ -390,6 +396,13 @@ errno_t thread_kill(thread_t* thread) {
         thread_yield();
     }
     return EOK;
+}
+
+errno_t thread_kill(thread_t* thread) {
+    bool enabled = interrupts_disable();
+    errno_t err = _thread_kill_unsafe(thread);
+    interrupts_restore(enabled);
+    return err;
 }
 
 const char* thread_state_str(thread_t* thread) {
