@@ -124,6 +124,20 @@ static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_ad
     return EOK;
 }
 
+static void _map_kernel(as_t* as) {
+    size_t kernel_size = (get_memory_end() - KERNEL_ADDRESS);
+    size_t kernel_page_count = kernel_size / MEGAPAGE_SIZE;
+    if (kernel_size % MEGAPAGE_SIZE != 0) {
+        ++kernel_page_count;
+    }
+
+    unative_t end_phys_addr = KERNEL_ADDRESS + kernel_page_count * MEGAPAGE_SIZE;
+
+    for (uintptr_t addr = KERNEL_ADDRESS; addr < end_phys_addr; addr += MEGAPAGE_SIZE) {
+        _add_lvl1_pte(as, addr, addr, true, false);
+    }
+}
+
 /** Create new address space of given size.
  *
  * The address space must start at address (PAGE_SIZE * PAGE_NULL_COUNT).
@@ -145,7 +159,7 @@ as_t* as_create(size_t size, unsigned int flags) {
     address_space->using_threads = 0;
 
     _table_init((uint32_t*)address_space->root_table_addr);
-    _add_lvl1_pte(address_space, KERNEL_ADDRESS, KERNEL_ADDRESS, true, false);
+    _map_kernel(address_space);
     _add_lvl1_pte(address_space, PRINTER_ADDRESS, PRINTER_ADDRESS, true, false);
     _add_lvl1_pte(address_space, LOADER_CODE_ADDRESS, LOADER_CODE_ADDRESS, true, false);
 
@@ -273,7 +287,7 @@ void as_add_thread(as_t* as, thread_t* thread) {
  */
 static void _unsafe_as_remove_thread(thread_t* thread) {
     as_t* as = thread->address_space;
-     // printk("USING: %d\n", as->using_threads);
+    // printk("USING: %d\n", as->using_threads);
     assert(as->using_threads != 0);
 
     thread->address_space = NULL;

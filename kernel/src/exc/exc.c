@@ -18,7 +18,7 @@ unative_t get_next_satp(void) {
     // For now ignore ASID, MODE depends on whether the thread belongs to an address space
     // PPN is the root table's address >> 12
 
-    thread_t *p_thread_to_run = scheduler_get_thread_to_run();
+    thread_t* p_thread_to_run = scheduler_get_thread_to_run();
 
     if (p_thread_to_run->address_space == NULL) {
         return 0;
@@ -26,8 +26,7 @@ unative_t get_next_satp(void) {
 
     unative_t mode = 1;
     unative_t ppn = p_thread_to_run->address_space->root_table_addr >> 12;
-    
-    
+
     return (mode << 31) | ppn;
 }
 
@@ -48,8 +47,8 @@ void handle_exception_general(exc_context_t* exc_context) {
 
         uintptr_t page_fault_address = exc_context->stval;
 
-        thread_t *p_curr_thread = scheduler_get_current_thread();
-        as_t *p_curr_thread_as = p_curr_thread->address_space;
+        thread_t* p_curr_thread = scheduler_get_current_thread();
+        as_t* p_curr_thread_as = p_curr_thread->address_space;
 
         if (is_illegal_memory_access(page_fault_address, p_curr_thread_as)) {
             thread_kill(p_curr_thread);
