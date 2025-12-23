@@ -5,12 +5,12 @@
 #define _PROC_THREAD_H
 
 #include <adt/list.h>
+#include <drivers/sv32.h>
 #include <errno.h>
+#include <exc.h>
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <proc/context.h>
-#include <drivers/sv32.h>
-#include <exc.h>
 
 /** Thread stack size.
  *

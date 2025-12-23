@@ -4,10 +4,10 @@
 #ifndef _MM_AS_H
 #define _MM_AS_H
 
+#include <drivers/printer.h>
 #include <errno.h>
 #include <proc/thread.h>
 #include <types.h>
-#include <drivers/printer.h>
 
 /*
  * Setup amount of ASIDS that are actually supported by the hardware.
@@ -24,7 +24,6 @@
 #endif
 
 #define KERNEL_ADDRESS 0x80000000
-
 
 #define PAGE_OFFSET_BITS 12
 #define PAGE_SIZE 4096
@@ -69,7 +68,7 @@ static inline bool is_null_pages_access(uintptr_t address) {
     return address < (NULL_PAGES_REGION_SIZE);
 }
 
-static inline bool is_address_beyond_address_space(uintptr_t address, as_t *address_space) {
+static inline bool is_address_beyond_address_space(uintptr_t address, as_t* address_space) {
     return address >= (NULL_PAGES_REGION_SIZE + address_space->size);
 }
 
@@ -81,6 +80,6 @@ static inline bool is_printer_pages_access(uintptr_t address) {
     return (address >= PRINTER_ADDRESS) && (address < (PRINTER_ADDRESS + MEGAPAGE_SIZE));
 }
 
-bool is_illegal_memory_access(uintptr_t address, as_t *address_space);
+bool is_illegal_memory_access(uintptr_t address, as_t* address_space);
 
 #endif
