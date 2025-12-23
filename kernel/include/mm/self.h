@@ -31,5 +31,7 @@ static inline uintptr_t kernel_get_image_end(void) {
     return uintptr_align_up((uintptr_t)_kernel_end, 32);
 }
 
+uintptr_t get_memory_end(void);
+
 #endif
 #endif

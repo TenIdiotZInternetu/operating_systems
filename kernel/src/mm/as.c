@@ -7,6 +7,7 @@
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
+#include <mm/self.h>
 
 #define PTE_VALID_BIT 0
 #define PTE_READ_BIT 1
@@ -240,13 +241,12 @@ void as_destroy(as_t* as) {
         bool entry_is_valid = lvl1_entry & PTE_VALIDITY_MASK;
         if (entry_is_valid) {
             uintptr_t lvl2_table_phys_addr = (lvl1_entry & PTE_PPN_MASK) << 2;
-            // printk("ADDR: %x\n", lvl2_table_phys_addr);
             _deallocate_entries((uint32_t*)lvl2_table_phys_addr);
             frame_free(1, lvl2_table_phys_addr);
         }
     }
 
-    // frame_free(1, as->root_table_addr);
+    frame_free(1, as->root_table_addr);
     kfree(as);
 }
 
