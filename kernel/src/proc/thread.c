@@ -38,7 +38,6 @@ static void _thread_execute() {
     set_SUM();
     interrupts_restore(true);
 
-
     void* retval = thread_to_execute->entry_func(thread_to_execute->first_arg);
 
     thread_finish(retval);
@@ -100,7 +99,7 @@ static errno_t _thread_create_unsafe(thread_t** thread_out, thread_entry_func_t 
     if (err != EOK) {
         return err;
     }
-    
+
     thread_t* p_cur_thread = thread_get_current();
     if (p_cur_thread != NULL) {
         as_add_thread(p_cur_thread->address_space, *thread_out);
@@ -235,6 +234,16 @@ bool thread_has_finished(thread_t* thread) {
     return thread->state == FINISHED || thread->state == KILLED;
 }
 
+static errno_t _thread_wakeup_unsafe(thread_t* thread) {
+    if (thread_has_finished(thread)) {
+        return EEXITED;
+    }
+
+    thread->state = READY;
+    scheduler_add_ready_thread(thread);
+    return EOK;
+}
+
 /** Wakes-up existing thread.
  *
  * Note that waking-up a running (or ready) thread has no effect (i.e. the
@@ -249,13 +258,10 @@ bool thread_has_finished(thread_t* thread) {
  * @retval EEXITED Thread already finished its execution.
  */
 errno_t thread_wakeup(thread_t* thread) {
-    if (thread_has_finished(thread)) {
-        return EEXITED;
-    }
-
-    thread->state = READY;
-    scheduler_add_ready_thread(thread);
-    return EOK;
+    bool disabled = interrupts_disable();
+    errno_t err = _thread_wakeup_unsafe(thread);
+    interrupts_restore(disabled);
+    return err;
 }
 
 static bool _thread_is_valid(thread_t* thread) {
