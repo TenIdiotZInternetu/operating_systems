@@ -307,7 +307,7 @@ void print_heap_block(void* ptr) {
         printk("(nil)");
         return;
     }
-    
+
     block_head_t* block_head = (block_head_t*)((uintptr_t)ptr - ALIGNED_HEAD_SIZE);
     printk("(%p)[%c][size: %u]",
             ptr,
