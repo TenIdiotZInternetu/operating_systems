@@ -37,7 +37,6 @@ unative_t get_next_satp(void) {
  * time of the exception occurring.
  */
 void handle_exception_general(exc_context_t* exc_context) {
-    static size_t alloc = 0;
     if (csr_scause_is_interrupt_pending(exc_context->scause)) {
         sv32_set_satp_tlb_shootdown(get_next_satp());
         scheduler_schedule_next();
@@ -58,8 +57,6 @@ void handle_exception_general(exc_context_t* exc_context) {
         uintptr_t aligned_page_fault_address = page_fault_address & PAGE_SIZE_ALIGNMENT_MASK;
 
         uintptr_t alloc_frame_phys_address = as_alloc_page(p_curr_thread_as, aligned_page_fault_address, 1);
-        ++alloc;
-        // printk("%p\n", page_fault_address);
 
         if (alloc_frame_phys_address == ENOMEM) {
             thread_kill(p_curr_thread);
