@@ -28,6 +28,7 @@ void heap_init(void);
 void* kmalloc(size_t size);
 void kfree(void* ptr);
 heap_head_t get_heap_info(void);
+void print_heap_block(void* ptr);
 void print_heap(void);
 
 uintptr_t get_heap_start_address(void);

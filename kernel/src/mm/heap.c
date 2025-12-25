@@ -302,6 +302,19 @@ heap_head_t get_heap_info() {
     return heap_header;
 }
 
+void print_heap_block(void* ptr) {
+    if (ptr == NULL) {
+        printk("(nil)");
+        return;
+    }
+    
+    block_head_t* block_head = (block_head_t*)((uintptr_t)ptr - ALIGNED_HEAD_SIZE);
+    printk("(%p)[%c][size: %u]",
+            ptr,
+            block_head->is_free ? ' ' : 'X',
+            block_head->size);
+}
+
 void print_heap() {
     printk("\
 { HEAP:\n \
