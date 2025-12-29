@@ -52,6 +52,12 @@ cpu_switch_context:
     CONTEXT_LOAD_GENERAL_REGISTERS a1
 
     /*
+     * Save the pointer to the current kernel stack top.
+     */
+    la t0, kernel_stack_top
+    sw sp, 0(t0)
+
+    /*
      * Restore the 'sstatus' CSR from the target context and return to the
      * caller. This will restore the state of the interrupts-enable bit in
      * 'sstatus', which may enable or disable interrupts, depending on the

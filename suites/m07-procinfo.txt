@@ -1,0 +1,7 @@
+# procinfo system call (optional)
+userspace procinfo/ticks
+userspace procinfo/bad1
+userspace procinfo/bad2
+userspace procinfo/bad3
+userspace procinfo/bad4
+userspace procinfo/fault
