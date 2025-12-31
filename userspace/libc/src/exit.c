@@ -9,5 +9,7 @@
  * @param status Process exit code.
  */
 void exit(int status) {
+    // TODO: call thread_finish (via syscall) and write
+    // exit status into process structure
     __SYSCALL1(SYSCALL_EXIT, (unative_t)status);
 }

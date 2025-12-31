@@ -8,6 +8,7 @@ extern void __main(void);
 
 /** First C code running in userspace. */
 void __main() {
+    // TODO: call main
     exit(0);
 
     assert(0 && "unreachable code");
