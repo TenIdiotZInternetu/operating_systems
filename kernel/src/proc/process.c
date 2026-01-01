@@ -8,7 +8,7 @@
 #define IMAGE_NULL_PADDING (PAGE_SIZE * 2)
 
 void process_copy_image(process_t* process) {
-    // The process is image is padded so code begins at the same offset as the address in address space
+    // The process is image is padded so code begins at the same offset as in the address space
     for (size_t i = 0; i < process->image_size; ++i) {
         size_t entry_addr = PROCESS_ENTRY_POINT + i;
 
