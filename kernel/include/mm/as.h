@@ -6,6 +6,7 @@
 
 #include <drivers/printer.h>
 #include <errno.h>
+#include <mm/frame.h>
 #include <proc/thread.h>
 #include <types.h>
 
@@ -74,7 +75,7 @@ static inline bool is_address_beyond_address_space(uintptr_t address, as_t* addr
 }
 
 static inline bool is_kernel_pages_access(uintptr_t address) {
-    return address >= KERNEL_ADDRESS;
+    return address >= KERNEL_ADDRESS && address < get_memory_end();
 }
 
 static inline bool is_printer_pages_access(uintptr_t address) {

@@ -5,7 +5,6 @@
 #include <drivers/printer.h>
 #include <errno.h>
 #include <mm/as.h>
-#include <mm/frame.h>
 #include <mm/heap.h>
 
 #define PTE_VALID_BIT 0
@@ -308,6 +307,6 @@ bool is_illegal_memory_access(uintptr_t address, as_t* address_space) {
     return address_space == NULL
             || is_kernel_pages_access(address)
             || is_null_pages_access(address)
-            || is_printer_pages_access(address)
-            || is_address_beyond_address_space(address, address_space);
+            || is_printer_pages_access(address);
+    // || is_address_beyond_address_space(address, address_space);
 }

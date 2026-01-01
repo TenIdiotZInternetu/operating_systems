@@ -7,17 +7,21 @@
 
 #define IMAGE_NULL_PADDING (PAGE_SIZE * 2)
 
-static void _process_copy_image(process_t* process) {
+void process_copy_image(process_t* process) {
+    // The process is image is padded so code begins at the same offset as the address in address space
     for (size_t i = 0; i < process->image_size; ++i) {
-        if (i % PAGE_SIZE == 0) {
+        size_t entry_addr = PROCESS_ENTRY_POINT + i;
+
+        if (entry_addr % PAGE_SIZE == 0) {
             as_t* as = process->user_thread->address_space;
-            as_alloc_page(as, PROCESS_ENTRY_POINT + i, 1);
+            as_alloc_page(as, entry_addr, 1);
         }
 
-        uint8_t* process_entry = (uint8_t*)PROCESS_ENTRY_POINT;
-        uint8_t* process_image = (uint8_t*)(process->image_start);
+        uint8_t* address_space = (uint8_t*)0;
+        uint8_t* process_image = (uint8_t*)process->image_start;
 
-        process_entry[i] = process_image[i + IMAGE_NULL_PADDING];
+        address_space[entry_addr] = process_image[entry_addr];
+        printk("%x %x %x %x\n", process->image_start, entry_addr, address_space[entry_addr], process_image[entry_addr]);
     }
 }
 
@@ -53,9 +57,7 @@ static errno_t _unsafe_process_create(process_t** process_out, uintptr_t image_l
     process->image_size = image_size;
     process_thread->process = process;
 
-    _process_copy_image(process);
     *process_out = process;
-
     return EOK;
 }
 

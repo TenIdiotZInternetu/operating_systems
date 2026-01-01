@@ -52,6 +52,7 @@ typedef struct {
     int exit_status;
 } process_t;
 
+void process_copy_image(process_t* process);
 errno_t process_create(process_t** process, uintptr_t image_location, size_t image_size, size_t process_memory_size);
 errno_t process_join(process_t* process, int* exit_status);
 
