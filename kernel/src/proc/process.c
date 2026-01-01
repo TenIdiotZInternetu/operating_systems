@@ -9,19 +9,11 @@
 
 void process_copy_image(process_t* process) {
     // The process is image is padded so code begins at the same offset as in the address space
+    uint8_t* process_image = (uint8_t*)process->image_start;
+    
     for (size_t i = 0; i < process->image_size; ++i) {
-        size_t entry_addr = PROCESS_ENTRY_POINT + i;
-
-        if (entry_addr % PAGE_SIZE == 0) {
-            as_t* as = process->user_thread->address_space;
-            as_alloc_page(as, entry_addr, 1);
-        }
-
-        uint8_t* address_space = (uint8_t*)0;
-        uint8_t* process_image = (uint8_t*)process->image_start;
-
-        address_space[entry_addr] = process_image[entry_addr];
-        printk("%x %x %x %x\n", process->image_start, entry_addr, address_space[entry_addr], process_image[entry_addr]);
+        uintptr_t entry_addr = PROCESS_ENTRY_POINT + i;
+        *(uint8_t*)entry_addr = process_image[entry_addr];
     }
 }
 
