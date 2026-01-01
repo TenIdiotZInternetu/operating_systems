@@ -69,7 +69,8 @@ static inline bool is_null_pages_access(uintptr_t address) {
 }
 
 static inline bool is_address_beyond_address_space(uintptr_t address, as_t* address_space) {
-    return address >= (NULL_PAGES_REGION_SIZE + address_space->size);
+    return address_space->size != 0
+            && address >= (NULL_PAGES_REGION_SIZE + address_space->size);
 }
 
 static inline bool is_kernel_pages_access(uintptr_t address) {

@@ -39,7 +39,6 @@ static void _thread_execute() {
     set_SUM();
 
     if (thread_to_execute->flags == THREAD_USERSPACE_FLAG) {
-        process_copy_image(thread_to_execute->process);
         cpu_jump_to_userspace(USERSPACE_STACK_TOP, PROCESS_ENTRY_POINT);
     } else {
         interrupts_restore(true);
