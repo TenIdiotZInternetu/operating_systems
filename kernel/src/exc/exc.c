@@ -67,7 +67,7 @@ void handle_exception_general(exc_context_t* exc_context) {
             thread_kill(p_curr_thread);
         }
     } else {
-        printk("%u", exc_context->scause);
+        printk("Uncaught exception: %u\n", exc_context->scause);
         machine_enter_debugger();
     }
 }
