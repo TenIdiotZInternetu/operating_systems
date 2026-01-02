@@ -123,18 +123,18 @@ static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_ad
     return EOK;
 }
 
-static void _map_kernel(as_t* as) {
-    size_t kernel_size = (get_memory_end() - KERNEL_ADDRESS);
-    size_t kernel_page_count = kernel_size / MEGAPAGE_SIZE;
-    if (kernel_size % MEGAPAGE_SIZE != 0) {
-        ++kernel_page_count;
-    }
-
-    unative_t end_phys_addr = KERNEL_ADDRESS + kernel_page_count * MEGAPAGE_SIZE;
-
-    for (uintptr_t addr = KERNEL_ADDRESS; addr < end_phys_addr; addr += MEGAPAGE_SIZE) {
+static void _identity_map(as_t* as, uintptr_t start_addr, uintptr_t end_addr) {
+    for (uintptr_t addr = start_addr; addr <= end_addr; addr += MEGAPAGE_SIZE) {
         _add_lvl1_pte(as, addr, addr, true, false);
     }
+}
+
+static void _map_kernel(as_t* as) {
+    _identity_map(as, KERNEL_ADDRESS, get_memory_end());
+}
+
+void map_image(as_t* as, uintptr_t image_start, uintptr_t image_end) {
+    _identity_map(as, image_start, image_end);
 }
 
 /** Create new address space of given size.

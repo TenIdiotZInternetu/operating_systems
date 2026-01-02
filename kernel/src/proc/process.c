@@ -10,8 +10,8 @@
 void process_copy_image(process_t* process) {
     // The process is image is padded so code begins at the same offset as in the address space
     uint8_t* process_image = (uint8_t*)process->image_start;
-    
-    for (size_t i = 0; i < process->image_size; ++i) {
+
+    for (size_t i = 0; i < (process->image_size - PROCESS_ENTRY_POINT); ++i) {
         uintptr_t entry_addr = PROCESS_ENTRY_POINT + i;
         *(uint8_t*)entry_addr = process_image[entry_addr];
     }
@@ -48,6 +48,8 @@ static errno_t _unsafe_process_create(process_t** process_out, uintptr_t image_l
     process->image_start = image_location;
     process->image_size = image_size;
     process_thread->process = process;
+
+    map_image(process_thread->address_space, image_location, image_location + image_size - 1);
 
     *process_out = process;
     return EOK;
