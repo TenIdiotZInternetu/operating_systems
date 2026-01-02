@@ -307,6 +307,6 @@ bool is_illegal_memory_access(uintptr_t address, as_t* address_space) {
     return address_space == NULL
             || is_kernel_pages_access(address)
             || is_null_pages_access(address)
-            || is_printer_pages_access(address);
-    // || is_address_beyond_address_space(address, address_space);
+            || is_printer_pages_access(address)
+            || is_address_beyond_address_space(address, address_space);
 }
