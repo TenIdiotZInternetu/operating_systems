@@ -31,12 +31,6 @@ int puts(const char* str) {
     return count;
 }
 
-/** Prints the given formatted string to console.
- *
- * @param format printf-style formatting string.
- * @return Number of printed characters.
- */
-int printf(const char* format, ...) {
-    (void)format;
-    return 0;
+void write(const void* buffer, size_t count) {
+    __SYSCALL2(SYSCALL_WRITE, (unative_t)buffer, (unative_t)count);
 }

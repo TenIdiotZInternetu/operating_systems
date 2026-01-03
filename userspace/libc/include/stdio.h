@@ -6,8 +6,12 @@
 
 #include <stddef.h>
 
+#define PRINTF_BUFFER_SIZE 256
+
 int putchar(int c);
 int puts(const char* s);
 int printf(const char* format, ...);
+
+void write(const void* buffer, size_t count);
 
 #endif

@@ -8,7 +8,7 @@
 #include <lib/print.h>
 #include <proc/thread.h>
 
-static void _handle_exit(syscall_t code) {
+static void _handle_exit(unative_t code) {
     thread_t* cur_thread = thread_get_current();
     assert(cur_thread != NULL);
 
@@ -18,6 +18,18 @@ static void _handle_exit(syscall_t code) {
 
 static void _handle_putchar(unative_t char_to_print) {
     printer_putchar((char)char_to_print);
+}
+
+static void _handle_write(unative_t buffer_address, unative_t count) {
+    if (buffer_address == 0 || count == 0) {
+        return;
+    }
+
+    const char * char_buffer = (const char *)buffer_address;
+
+    for (unative_t i = 0; i < count; ++i) {
+        printer_putchar(char_buffer[i]);
+    }
 }
 
 /** Handles a syscall.
@@ -36,7 +48,11 @@ void handle_syscall(exc_context_t* exc_context) {
         case SYSCALL_PUTCHAR:
             _handle_putchar(exc_context->a1);
             break;
+        case SYSCALL_WRITE:
+            _handle_write(exc_context->a1, exc_context->a2);
+            break;
         default:
+            exc_context->a0 = ENOIMPL;
             break;
     }
 
