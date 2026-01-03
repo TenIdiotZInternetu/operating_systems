@@ -11,8 +11,7 @@
  * @return Character written as an unsigned char cast to an int.
  */
 int putchar(int c) {
-    // TODO: actually print the character: either via syscall or
-    // via mapping printer to some user-accessible address
+    __SYSCALL1(SYSCALL_PUTCHAR, (unative_t)c);
     return (unsigned char)c;
 }
 
