@@ -8,7 +8,7 @@
 #include <lib/print.h>
 #include <proc/thread.h>
 
-static void _handle_exit(syscall_t code) {
+static void _handle_exit(int code) {
     thread_t* cur_thread = thread_get_current();
     assert(cur_thread != NULL);
 
