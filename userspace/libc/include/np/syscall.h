@@ -21,6 +21,7 @@
  * Must be kept up-to-date with kernel list.
  */
 typedef enum {
+    SYSCALL_PUTCHAR,
     SYSCALL_EXIT,
     SYSCALL_LAST
 } syscall_t;
