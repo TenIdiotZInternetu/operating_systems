@@ -33,4 +33,6 @@ void update_free_frame_count(uintptr_t start_address);
 
 size_t get_frame_region_size(void);
 
+void print_frames(void);
+
 #endif
