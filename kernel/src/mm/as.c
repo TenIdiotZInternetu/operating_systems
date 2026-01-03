@@ -65,15 +65,11 @@ static size_t _lvl2_entry_index(uintptr_t virtual_addr) {
  */
 static void _add_pte(uintptr_t page_table_address, size_t entry_index, uintptr_t phys_addr, bool is_leaf, bool userspace_access) {
     uint32_t* entry = (uint32_t*)page_table_address + entry_index;
-    // printk("ROOT ADDR: %p\n, ", page_table_address);
-    // printk("ENTRY: %p\n, ", *entry);
     *entry |= (1 << PTE_VALID_BIT);
     *entry |= (is_leaf << PTE_READ_BIT);
     *entry |= (is_leaf << PTE_WRITE_BIT);
     *entry |= (is_leaf << PTE_EXECUTE_BIT);
     *entry |= (userspace_access << PTE_USERMODE_BIT);
-    // *entry |= (1 << PTE_DIRTY_BIT);
-    // *entry |= (1 << PTE_ACCESSED_BIT);
     *entry |= (phys_addr >> 2);
 }
 
@@ -263,20 +259,17 @@ static void _deallocate_entries(uint32_t* table_address) {
  * the as_t structure.
  */
 void as_destroy(as_t* as) {
-    // printk("DESTROY\n");
     size_t userspace_entries_count = KERNEL_ADDRESS / MEGAPAGE_SIZE;
     for (size_t i = 0; i < userspace_entries_count; ++i) {
         uint32_t lvl1_entry = ((uint32_t*)as->root_table_addr)[i];
         bool entry_is_valid = lvl1_entry & PTE_VALIDITY_MASK;
         if (entry_is_valid) {
             uintptr_t lvl2_table_phys_addr = (lvl1_entry & PTE_PPN_MASK) << 2;
-            // printk("ADDR: %x\n", lvl2_table_phys_addr);
             _deallocate_entries((uint32_t*)lvl2_table_phys_addr);
             frame_free(1, lvl2_table_phys_addr);
         }
     }
 
-    // frame_free(1, as->root_table_addr);
     kfree(as);
 }
 

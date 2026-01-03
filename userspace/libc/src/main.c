@@ -9,7 +9,6 @@ extern void __main(void);
 
 /** First C code running in userspace. */
 void __main() {
-    // machine_enter_debugger();
     int code = main();
     exit(code);
 
