@@ -2,8 +2,8 @@
 // Copyright 2019 Charles University
 
 #include <drivers/machine.h>
-#include <drivers/timer.h>
 #include <drivers/printer.h>
+#include <drivers/timer.h>
 #include <exc.h>
 #include <lib/print.h>
 #include <proc/thread.h>
@@ -30,14 +30,14 @@ void handle_syscall(exc_context_t* exc_context) {
     syscall_t syscall_id = exc_context->a0;
 
     switch (syscall_id) {
-        case SYSCALL_EXIT:
-            _handle_exit(exc_context->a1);
-            break;
-        case SYSCALL_PUTCHAR:
-            _handle_putchar(exc_context->a1);
-            break;
-        default:
-            break;
+    case SYSCALL_EXIT:
+        _handle_exit(exc_context->a1);
+        break;
+    case SYSCALL_PUTCHAR:
+        _handle_putchar(exc_context->a1);
+        break;
+    default:
+        break;
     }
 
     // On success, shift EPC by 4 to resume execution of the interrupted

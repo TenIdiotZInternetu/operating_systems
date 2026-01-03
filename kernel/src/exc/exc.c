@@ -37,12 +37,14 @@ unative_t get_next_satp(void) {
  * time of the exception occurring.
  */
 void handle_exception_general(exc_context_t* exc_context) {
-    static size_t alloc = 0;
     if (csr_scause_is_interrupt_pending(exc_context->scause)) {
         sv32_set_satp_tlb_shootdown(get_next_satp());
         scheduler_schedule_next();
     } else if (exc_context->scause == EXC_CODE_ECALL_U) {
         handle_syscall(exc_context);
+    } else if (exc_context->scause == EXC_CODE_ILLEGAL_INSTRUCTION) {
+        thread_t* cur_thread = scheduler_get_current_thread();
+        thread_kill(cur_thread);
     } else if (csr_scause_is_page_fault(exc_context->scause)) {
         as_handle_page_fault(exc_context->stval);
     } else {
