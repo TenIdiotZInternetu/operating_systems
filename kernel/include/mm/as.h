@@ -52,9 +52,11 @@ typedef struct as {
 
 void as_init(void);
 as_t* as_create(size_t size, unsigned int flags);
+void as_destroy(as_t* as);
+
 uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count);
 void map_image(as_t* as, uintptr_t image_start, uintptr_t image_end);
-void as_destroy(as_t* as);
+void as_handle_page_fault(uintptr_t page_fault_address);
 
 void as_add_thread(as_t* as, thread_t* thread);
 void as_remove_thread(thread_t* thread);

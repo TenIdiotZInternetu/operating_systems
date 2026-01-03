@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <mm/as.h>
 #include <mm/heap.h>
+#include <proc/scheduler.h>
 
 #define PTE_VALID_BIT 0
 #define PTE_READ_BIT 1
@@ -211,6 +212,29 @@ uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
 }
 
 /**
+ * Allocate new frame for the virtual address in context->stval
+ * or kill the thread if it accesses NULL pages or kernel pages
+ *
+ * @param page_fault_addr Address which caused the fault and must be mapped
+ */
+void as_handle_page_fault(uintptr_t page_fault_address) {
+    thread_t* p_curr_thread = scheduler_get_current_thread();
+    as_t* p_curr_thread_as = p_curr_thread->address_space;
+
+    if (is_illegal_memory_access(page_fault_address, p_curr_thread_as)) {
+        thread_kill(p_curr_thread);
+        return;
+    }
+
+    uintptr_t aligned_page_fault_address = page_fault_address & PAGE_SIZE_ALIGNMENT_MASK;
+    uintptr_t alloc_frame_phys_address = as_alloc_page(p_curr_thread_as, aligned_page_fault_address, 1);
+
+    if (alloc_frame_phys_address == ENOMEM) {
+        thread_kill(p_curr_thread);
+    }
+}
+
+/**
  * Iterates through the table and deallocates frame for every valid page
  * @param table_address Address of the table with entries to deallocate
  *
@@ -293,7 +317,6 @@ void as_add_thread(as_t* as, thread_t* thread) {
  */
 static void _unsafe_as_remove_thread(thread_t* thread) {
     as_t* as = thread->address_space;
-    // printk("USING: %d\n", as->using_threads);
     assert(as->using_threads != 0);
 
     thread->address_space = NULL;

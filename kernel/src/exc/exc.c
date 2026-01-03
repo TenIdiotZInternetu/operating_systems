@@ -44,28 +44,7 @@ void handle_exception_general(exc_context_t* exc_context) {
     } else if (exc_context->scause == EXC_CODE_ECALL_U) {
         handle_syscall(exc_context);
     } else if (csr_scause_is_page_fault(exc_context->scause)) {
-        // Allocate new frame for the virtual address in context->stval
-        // or kill the thread if it accesses NULL pages or kernel pages
-
-        uintptr_t page_fault_address = exc_context->stval;
-
-        thread_t* p_curr_thread = scheduler_get_current_thread();
-        as_t* p_curr_thread_as = p_curr_thread->address_space;
-
-        if (is_illegal_memory_access(page_fault_address, p_curr_thread_as)) {
-            thread_kill(p_curr_thread);
-            return;
-        }
-
-        uintptr_t aligned_page_fault_address = page_fault_address & PAGE_SIZE_ALIGNMENT_MASK;
-
-        uintptr_t alloc_frame_phys_address = as_alloc_page(p_curr_thread_as, aligned_page_fault_address, 1);
-        ++alloc;
-        // printk("%p\n", page_fault_address);
-
-        if (alloc_frame_phys_address == ENOMEM) {
-            thread_kill(p_curr_thread);
-        }
+        as_handle_page_fault(exc_context->stval);
     } else {
         printk("Uncaught exception: %u\n", exc_context->scause);
         machine_enter_debugger();
