@@ -5,6 +5,7 @@
 #define _LIBC_NP_TYPES_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /*
  * Various useful types.

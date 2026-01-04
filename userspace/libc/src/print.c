@@ -2,6 +2,7 @@
 // Copyright 2019 Charles University
 
 #include <np/syscall.h>
+#include <np/types.h>
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -26,7 +27,7 @@ static void _flush(void);
 static void _format_char(char c);
 static void _format_char_no_bound_check(char c);
 static void _format_string(const char* string);
-static void _format_num(uint32_t num, uint8_t base, bool uppercase, uint8_t zero_padding)
+static void _format_num(uint32_t num, uint8_t base, bool uppercase, uint8_t zero_padding);
 static void _format_hex(uint32_t n, bool uppercase);
 static char _digit_to_char(uint8_t digit, bool uppercase);
 
@@ -164,7 +165,7 @@ int putchar(int c) {
  * Issues a system call that writes buffer's content to console.
  */
 void write(const void* buffer, size_t count) {
-    return (ssize_t)__SYSCALL2(SYSCALL_WRITE,(unative_t)buffer, (unative_t)count);
+    __SYSCALL2(SYSCALL_WRITE,(unative_t)buffer, (unative_t)count);
 }
 
 /** Prints the given formatted string to console.
