@@ -125,10 +125,10 @@ static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_ad
  * by megapages
  * @param as Address space for which we are creating mapping
  * @param start_addr First address to map
- * @param end_addr Last address to map
+ * @param end_addr Address after the last address to map
  */
 static void _identity_map(as_t* as, uintptr_t start_addr, uintptr_t end_addr) {
-    for (uintptr_t addr = start_addr; addr <= end_addr; addr += MEGAPAGE_SIZE) {
+    for (uintptr_t addr = start_addr; addr < end_addr; addr += MEGAPAGE_SIZE) {
         _add_lvl1_pte(as, addr, addr, true, false);
     }
 }

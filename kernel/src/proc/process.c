@@ -53,7 +53,7 @@ static errno_t _unsafe_process_create(process_t** process_out, uintptr_t image_l
     process->image_size = image_size;
     process_thread->process = process;
 
-    map_image(process_thread->address_space, image_location, image_location + image_size - 1);
+    map_image(process_thread->address_space, image_location, image_location + image_size);
 
     *process_out = process;
     return EOK;
