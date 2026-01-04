@@ -5,6 +5,7 @@
 #define _PROC_PROCESS_H
 
 #include <errno.h>
+#include <mm/as.h>
 #include <proc/thread.h>
 #include <types.h>
 
@@ -28,6 +29,10 @@
 /** Actual size of the application binary. */
 #define PROCESS_IMAGE_SIZE (1024 * 128)
 
+#define USERSPACE_STACK_PAGES 2
+#define USERSPACE_STACK_REGION_SIZE (USERSPACE_STACK_PAGES * PAGE_SIZE)
+#define USERSPACE_STACK_TOP (NULL_PAGES_REGION_SIZE + USERSPACE_STACK_REGION_SIZE)
+
 #ifndef PROCESS_MEMORY_SIZE
 /** Amount of virtual memory to give to the userspace process. */
 #define PROCESS_MEMORY_SIZE (PROCESS_IMAGE_SIZE * 2)
@@ -37,13 +42,17 @@
 #error "Cannot give less memory than image size!"
 #endif
 
+typedef struct thread thread_t;
+
 /** Information about existing process. */
 typedef struct {
     thread_t* user_thread;
     uintptr_t image_start;
     size_t image_size;
+    int exit_status;
 } process_t;
 
+void process_copy_image(process_t* process);
 errno_t process_create(process_t** process, uintptr_t image_location, size_t image_size, size_t process_memory_size);
 errno_t process_join(process_t* process, int* exit_status);
 

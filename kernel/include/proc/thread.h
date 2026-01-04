@@ -11,6 +11,7 @@
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <proc/context.h>
+#include <proc/process.h>
 
 /** Thread stack size.
  *
@@ -23,6 +24,8 @@
 
 /** Max length of a thread name (excluding the terminating zero). */
 #define THREAD_NAME_MAX_LENGTH 31
+
+#define THREAD_USERSPACE_FLAG 1
 
 /* Forward declaration to prevent cyclic header inclusions. */
 typedef struct as as_t;
@@ -51,7 +54,9 @@ struct thread {
     thread_t* joined_by_thread;
     link_t link;
     as_t* address_space;
+    process_t* process;
     bool is_initialized;
+    unsigned int flags;
 };
 
 void threads_init(void);
