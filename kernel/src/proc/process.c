@@ -9,19 +9,11 @@
 
 void process_copy_image(process_t* process) {
     // The process is image is padded so code begins at the same offset as in the address space
-    for (size_t i = 0; i < process->image_size; ++i) {
-        size_t entry_addr = PROCESS_ENTRY_POINT + i;
+    uint8_t* process_image = (uint8_t*)process->image_start;
 
-        if (entry_addr % PAGE_SIZE == 0) {
-            as_t* as = process->user_thread->address_space;
-            as_alloc_page(as, entry_addr, 1);
-        }
-
-        uint8_t* address_space = (uint8_t*)0;
-        uint8_t* process_image = (uint8_t*)process->image_start;
-
-        address_space[entry_addr] = process_image[entry_addr];
-        printk("%x %x %x %x\n", process->image_start, entry_addr, address_space[entry_addr], process_image[entry_addr]);
+    for (size_t i = 0; i < (process->image_size - PROCESS_ENTRY_POINT); ++i) {
+        uintptr_t entry_addr = PROCESS_ENTRY_POINT + i;
+        *(uint8_t*)entry_addr = process_image[entry_addr];
     }
 }
 
@@ -41,6 +33,10 @@ static errno_t _unsafe_process_create(process_t** process_out, uintptr_t image_l
         return EINVAL;
     }
 
+    if (!frame_has_enough_space(process_memory_size)) {
+        return ENOMEM;
+    }
+
     thread_t* process_thread;
     errno_t err = thread_create_new_as(&process_thread, NULL, NULL, THREAD_USERSPACE_FLAG, "process_thread", process_memory_size);
     if (err != EOK) {
@@ -56,6 +52,8 @@ static errno_t _unsafe_process_create(process_t** process_out, uintptr_t image_l
     process->image_start = image_location;
     process->image_size = image_size;
     process_thread->process = process;
+
+    map_image(process_thread->address_space, image_location, image_location + image_size - 1);
 
     *process_out = process;
     return EOK;

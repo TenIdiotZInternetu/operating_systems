@@ -2,13 +2,13 @@
 // Copyright 2019 Charles University
 
 #include <drivers/machine.h>
-#include <drivers/timer.h>
 #include <drivers/printer.h>
+#include <drivers/timer.h>
 #include <exc.h>
 #include <lib/print.h>
 #include <proc/thread.h>
 
-static void _handle_exit(unative_t code) {
+static void _handle_exit(int code) {
     thread_t* cur_thread = thread_get_current();
     assert(cur_thread != NULL);
 

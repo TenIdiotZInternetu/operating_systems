@@ -173,3 +173,23 @@ errno_t frame_free(size_t count, uintptr_t phys) {
     interrupts_restore(interrupts_enabled);
     return err;
 }
+
+bool frame_has_enough_space(size_t bytes) {
+    return frame_allocator.free_frame_count > bytes / FRAME_SIZE;
+}
+
+void print_frames() {
+    bool enabled = interrupts_disable();
+    size_t max_frames = get_frame_region_size() / FRAME_SIZE;
+    size_t free_frames = frame_allocator.free_frame_count;
+
+    printk("{ FRAME ALLOCATOR\n");
+    printk("    used: %u/%u,\n", max_frames - free_frames, max_frames);
+    printk("    free: %u,\n", free_frames);
+    printk("    range: %p-%p\n", memory_start, memory_start + get_frame_region_size());
+    printk("\n  USED FRAMES:\n");
+    print_bitmap(&frame_bits);
+    printk("\n}\n");
+
+    interrupts_restore(enabled);
+}
