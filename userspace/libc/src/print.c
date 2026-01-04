@@ -74,13 +74,13 @@ static void _format_string(const char* string) {
 
 static void _format_num(uint32_t num, uint8_t base, bool uppercase, uint8_t zero_padding) {
     uint32_t div = 1;
-    bool paddingReached = 1 >= zero_padding;
-    bool maxDivReached = num / div < base;
+    bool padding_reached = 1 >= zero_padding;
+    bool max_div_reached = num / div < base;
 
-    for (uint8_t digits = 2; !paddingReached || !maxDivReached; digits++) {
+    for (uint8_t digits = 2; !padding_reached || !max_div_reached; digits++) {
         div *= base;
-        paddingReached = digits >= zero_padding;
-        maxDivReached = num / div < base;
+        padding_reached = digits >= zero_padding;
+        max_div_reached = num / div < base;
     }
 
     for (; div > 0; div /= base) {
@@ -192,10 +192,10 @@ int printf(const char* format, ...) {
 
     va_end(args);
 
-    int printed_chars = (int)curr_printf_char_buffer_pos;
+    int printed_char_count = (int)curr_printf_char_buffer_pos;
     _flush();
 
-    return printed_chars;
+    return printed_char_count;
 }
 
 /** Prints the given string to console, terminating it with a newline.
