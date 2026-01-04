@@ -9,6 +9,13 @@
 #include <types.h>
 
 void handle_exception_general(exc_context_t* exc_context);
+void handle_syscall(exc_context_t* context);
+
+typedef enum {
+    SYSCALL_PUTCHAR,
+    SYSCALL_EXIT,
+    SYSCALL_LAST
+} syscall_t;
 
 unative_t get_next_satp(void);
 

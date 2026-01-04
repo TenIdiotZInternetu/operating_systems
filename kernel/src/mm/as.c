@@ -5,8 +5,8 @@
 #include <drivers/printer.h>
 #include <errno.h>
 #include <mm/as.h>
-#include <mm/frame.h>
 #include <mm/heap.h>
+#include <proc/scheduler.h>
 
 #define PTE_VALID_BIT 0
 #define PTE_READ_BIT 1
@@ -120,18 +120,25 @@ static errno_t _add_lvl2_pte(as_t* as, uintptr_t virtual_addr, uintptr_t phys_ad
     return EOK;
 }
 
-static void _map_kernel(as_t* as) {
-    size_t kernel_size = (get_memory_end() - KERNEL_ADDRESS);
-    size_t kernel_page_count = kernel_size / MEGAPAGE_SIZE;
-    if (kernel_size % MEGAPAGE_SIZE != 0) {
-        ++kernel_page_count;
-    }
-
-    unative_t end_phys_addr = KERNEL_ADDRESS + kernel_page_count * MEGAPAGE_SIZE;
-
-    for (uintptr_t addr = KERNEL_ADDRESS; addr < end_phys_addr; addr += MEGAPAGE_SIZE) {
+/**
+ * Identity maps specified addresses without frame allocation
+ * by megapages
+ * @param as Address space for which we are creating mapping
+ * @param start_addr First address to map
+ * @param end_addr Address after the last address to map
+ */
+static void _identity_map(as_t* as, uintptr_t start_addr, uintptr_t end_addr) {
+    for (uintptr_t addr = start_addr; addr < end_addr; addr += MEGAPAGE_SIZE) {
         _add_lvl1_pte(as, addr, addr, true, false);
     }
+}
+
+static void _map_kernel(as_t* as) {
+    _identity_map(as, KERNEL_ADDRESS, get_memory_end());
+}
+
+void map_image(as_t* as, uintptr_t image_start, uintptr_t image_end) {
+    _identity_map(as, image_start, image_end);
 }
 
 /** Create new address space of given size.
@@ -201,6 +208,29 @@ uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count) {
 }
 
 /**
+ * Allocate new frame for the virtual address in context->stval
+ * or kill the thread if it accesses NULL pages or kernel pages
+ *
+ * @param page_fault_addr Address which caused the fault and must be mapped
+ */
+void as_handle_page_fault(uintptr_t page_fault_address) {
+    thread_t* p_curr_thread = scheduler_get_current_thread();
+    as_t* p_curr_thread_as = p_curr_thread->address_space;
+
+    if (is_illegal_memory_access(page_fault_address, p_curr_thread_as)) {
+        thread_kill(p_curr_thread);
+        return;
+    }
+
+    uintptr_t aligned_page_fault_address = page_fault_address & PAGE_SIZE_ALIGNMENT_MASK;
+    uintptr_t alloc_frame_phys_address = as_alloc_page(p_curr_thread_as, aligned_page_fault_address, 1);
+
+    if (alloc_frame_phys_address == ENOMEM) {
+        thread_kill(p_curr_thread);
+    }
+}
+
+/**
  * Iterates through the table and deallocates frame for every valid page
  * @param table_address Address of the table with entries to deallocate
  *
@@ -229,7 +259,6 @@ static void _deallocate_entries(uint32_t* table_address) {
  * the as_t structure.
  */
 void as_destroy(as_t* as) {
-    // printk("DESTROY\n");
     size_t userspace_entries_count = KERNEL_ADDRESS / MEGAPAGE_SIZE;
     for (size_t i = 0; i < userspace_entries_count; ++i) {
         uint32_t lvl1_entry = ((uint32_t*)as->root_table_addr)[i];
@@ -241,7 +270,6 @@ void as_destroy(as_t* as) {
         }
     }
 
-    // frame_free(1, as->root_table_addr);
     kfree(as);
 }
 

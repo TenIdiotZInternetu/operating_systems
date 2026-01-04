@@ -139,6 +139,9 @@ def parse_test_config(test_descriptor):
             extras['kernel_cflags'].append(f'HARDWARE_ASIDS_MAX={max_asids}')
         elif part.startswith('t'):
             extras['timeout'] = int(part[1:]) * 60
+        elif part.startswith('u'):
+            vm_size_bytes = 1024 * int(part[1:])
+            extras['kernel_cflags'].append(f'PROCESS_MEMORY_SIZE={vm_size_bytes}')
         elif part.startswith('D'):
             extras['kernel_cflags'].append(part[1:])
         else:
@@ -202,6 +205,8 @@ def run_os_test(test_descriptor, extra_configure_args, logger, build_dir_name):
     # Determine test result
     should_panic = False
     actually_panicked = False
+    should_abort_user_app = False
+    actually_aborted = False
     found_test_passed = False
 
     for line in output:
@@ -209,6 +214,11 @@ def run_os_test(test_descriptor, extra_configure_args, logger, build_dir_name):
             should_panic = True
         if 'Kernel panic:' in line:
             actually_panicked = True
+            break
+        if line == '[ ENDS WITH APPLICATION ABORT ]':
+            should_abort_user_app = True
+        if 'User application forcefully terminated' in line:
+            actually_aborted = True
             break
         if line == 'Test finished.':
             found_test_passed = True
@@ -218,8 +228,12 @@ def run_os_test(test_descriptor, extra_configure_args, logger, build_dir_name):
         if not actually_panicked:
             raise TesterException('test failed (did not panic)', 'see msim.log')
 
-    test_passed_bad = found_test_passed and should_panic
-    test_failed_bad = (not found_test_passed) and (not should_panic)
+    if should_abort_user_app:
+        if not actually_aborted:
+            raise TesterException('test failed (user application not aborted)', 'see msim.log')
+
+    test_passed_bad = found_test_passed and (should_panic or should_abort_user_app)
+    test_failed_bad = (not found_test_passed) and (not (should_panic or should_abort_user_app))
     if test_passed_bad or test_failed_bad:
         raise TesterException('test failed', 'see msim.log')
 
@@ -245,6 +259,24 @@ def run_kernel_test(test_descriptor, extra_configure_args):
                 logging.getLogger('K/{}'.format(name)),
                 'kernel/{}'.format(test_descriptor))
 
+def run_userspace_test(test_descriptor, extra_configure_args):
+    ( name, _ ) = parse_test_config(test_descriptor)
+    configure_args = [f'--userspace-test={name}']
+    configure_args.extend(extra_configure_args)
+    run_os_test(test_descriptor,
+                configure_args,
+                logging.getLogger('U/{}'.format(name)),
+                'userspace/{}'.format(test_descriptor))
+
+def run_mixed_test(test_descriptor, extra_configure_args):
+    ( name, _ ) = parse_test_config(test_descriptor)
+    configure_args = [f'--mixed-test={name}']
+    configure_args.extend(extra_configure_args)
+    run_os_test(test_descriptor,
+                configure_args,
+                logging.getLogger('M/{}'.format(name)),
+                'mixed/{}'.format(test_descriptor))
+
 def get_suite_tests(suite_filename):
     with open(suite_filename, 'r') as suite:
         for line in suite:
@@ -263,6 +295,10 @@ def run_one_test(test, logger, report, extra_configure_args, completed_cond=None
     try:
         if test['type'] == 'kernel':
             run_kernel_test(test['name'], extra_configure_args)
+        elif test['type'] == 'userspace':
+            run_userspace_test(test['name'], extra_configure_args)
+        elif test['type'] == 'mixed':
+            run_mixed_test(test['name'], extra_configure_args)
         else:
             raise TesterException('unknown test type {} for {}'.format(
                 test['type'], test['name']), '')
@@ -361,10 +397,10 @@ def print_report(report, json_filename):
     count_total = 0
     for result in report:
         if result['status'] == 'passed':
-            logger.info(' - %s passed', result['name'])
+            logger.info(' - %s %s passed', result['type'], result['name'])
             count_passed = count_passed + 1
         elif result['status'] == 'failed':
-            logger.info(' - %s FAILED (%s)', result['name'], result['message'])
+            logger.info(' - %s %s FAILED (%s)', result['type'], result['name'], result['message'])
         else:
             raise UnreachableCode()
 
@@ -435,6 +471,20 @@ def main():
                              nargs='+',
                              help='Kernel test names.')
 
+    args_userspace = args_sub.add_parser('userspace', help='Run userspace test.', parents=[common_args])
+    args_userspace.set_defaults(action='userspace')
+    args_userspace.add_argument('test_names',
+                                metavar='TEST_NAME',
+                                nargs='+',
+                                help='Userspace test names.')
+
+    args_mixed = args_sub.add_parser('mixed', help='Run mixed kernel/userspace test.', parents=[common_args])
+    args_mixed.set_defaults(action='mixed')
+    args_mixed.add_argument('test_names',
+                            metavar='TEST_NAME',
+                            nargs='+',
+                            help='Mixed test names.')
+
     args_suite = args_sub.add_parser('suite', help='Run whole test suite.', parents=[common_args])
     args_suite.set_defaults(action='suite')
     args_suite.add_argument('suite_files',
@@ -463,6 +513,18 @@ def main():
         for test in config.test_names:
             tests.append({
                 'type': 'kernel',
+                'name': test
+            })
+    elif config.action == 'userspace':
+        for test in config.test_names:
+            tests.append({
+                'type': 'userspace',
+                'name': test
+            })
+    elif config.action == 'mixed':
+        for test in config.test_names:
+            tests.append({
+                'type': 'mixed',
                 'name': test
             })
     elif config.action == 'suite':
