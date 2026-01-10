@@ -5,6 +5,8 @@
 #include <drivers/printer.h>
 #include <errno.h>
 #include <mm/as.h>
+#include <mm/frame.h>
+#include <mm/heap.h>
 #include <mm/self.h>
 #include <proc/scheduler.h>
 
