@@ -22,7 +22,8 @@ static uintptr_t _probe_memory(uintptr_t start_address) {
 
 uintptr_t get_memory_end(void) {
     if (!memory_probed) {
-        memory_end = _probe_memory(kernel_get_image_end());
+        uintptr_t probe_begin = uintptr_align_up(kernel_get_image_end(), PROBE_STEP);
+        memory_end = _probe_memory(probe_begin);
     }
     return memory_end;
 }
