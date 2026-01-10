@@ -15,7 +15,7 @@
 static bitmap_t frame_bits;
 static frame_allocator_t frame_allocator;
 
-static first_frame_addr;
+static uintptr_t first_frame_addr;
 
 static uintptr_t _align(uintptr_t addr) {
     if (addr % FRAME_SIZE == 0) {
