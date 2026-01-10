@@ -22,9 +22,12 @@ typedef struct {
 void frame_init(void);
 errno_t frame_alloc(size_t count, uintptr_t* phys);
 errno_t frame_free(size_t count, uintptr_t phys);
+bool frame_has_enough_space(size_t bytes);
 
 void update_free_frame_count(uintptr_t start_address);
 
 size_t get_frame_region_size(void);
+
+void print_frames(void);
 
 #endif

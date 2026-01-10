@@ -159,14 +159,6 @@ void print_list(list_t* list) {
     printk("]");
 }
 
-static void print_heap_block(void* ptr) {
-    block_head_t* block_head = (block_head_t*)ptr - 1;
-    printk("(%p)[%c][size: %u]",
-            ptr,
-            block_head->is_free ? ' ' : 'X',
-            block_head->size);
-}
-
 static void print_thread(thread_t* thread) {
     if (thread == NULL) {
         printk("(nil)");

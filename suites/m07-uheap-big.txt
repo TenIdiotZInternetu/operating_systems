@@ -1,0 +1,5 @@
+# Userspace large heap (optional, do not run on GitLab)
+userspace heap/exhaust2:m4096:u1024
+userspace heap/exhaust2:m8192:u2048
+userspace heap/stress:m4096:u1024
+userspace heap/stress:m8192:u2048

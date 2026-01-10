@@ -16,6 +16,10 @@
  * The test intentionally uses magic numbers so that the test cannot be
  * easily used instead of the documentation of RISC-V page translation
  * process.
+ *
+ * This test assumes that all pages (frames) are allocated when address space
+ * is created. Feel free to disable this test when using on-demand page
+ * allocation.
  */
 
 #include <ktest.h>

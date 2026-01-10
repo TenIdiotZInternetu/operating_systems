@@ -10,6 +10,7 @@
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
+#include <proc/process.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 
@@ -25,8 +26,21 @@ static void* init_thread(void* ignored) {
 #ifdef KERNEL_TEST
     kernel_test();
 #else
-    printk("%s: Hello, World!\n", thread_get_current()->name);
-    dprintk("%pT: $sp = 0x%x\n", thread_get_current(), debug_get_stack_pointer());
+    printk("%s: Hello from kernel!\n", thread_get_current()->name);
+    process_t* app;
+    errno_t err = process_create(&app, PROCESS_IMAGE_START, PROCESS_IMAGE_SIZE, PROCESS_MEMORY_SIZE);
+    panic_if(err != EOK, "userspace application launch failed (%d: %s)", err, errno_as_str(err));
+
+    int exit_status;
+    err = process_join(app, &exit_status);
+    if (err == EKILLED) {
+        printk("\nUser application forcefully terminated.\n");
+    } else {
+        panic_if(err != EOK, "waiting for userspace application failed (%d: %s)", err, errno_as_str(err));
+    }
+    if (exit_status != 0) {
+        printk("\nUser application failed.\n");
+    }
 #endif
     printk("\nHalt.\n");
     machine_halt();

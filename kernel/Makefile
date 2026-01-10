@@ -43,15 +43,18 @@ KERNEL_SOURCES = \
 	src/debug/padding.c \
 	src/exc/exc.c \
 	src/exc/handlers.S \
+	src/exc/syscall.c \
 	src/lib/print.c \
 	src/lib/runtime.c \
 	src/mm/as.c \
 	src/mm/self.c \
 	src/proc/context.S \
 	src/proc/mutex.c \
+	src/proc/process.c \
 	src/proc/scheduler.c \
 	src/proc/sem.c \
-	src/proc/thread.c
+	src/proc/thread.c \
+	src/proc/userspace.S
 
 ifeq ($(KERNEL_MEMORY_MANAGEMENT_IMPLEMENTATION),)
 KERNEL_MM_SOURCES = src/mm/frame.c src/mm/heap.c

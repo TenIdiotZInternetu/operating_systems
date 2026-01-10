@@ -6,6 +6,7 @@
 
 #include <drivers/printer.h>
 #include <errno.h>
+#include <mm/frame.h>
 #include <proc/thread.h>
 #include <types.h>
 
@@ -51,8 +52,11 @@ typedef struct as {
 
 void as_init(void);
 as_t* as_create(size_t size, unsigned int flags);
-uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count);
 void as_destroy(as_t* as);
+
+uintptr_t as_alloc_page(as_t* as, uintptr_t virtual_addr, size_t count);
+void map_image(as_t* as, uintptr_t image_start, uintptr_t image_end);
+void as_handle_page_fault(uintptr_t page_fault_address);
 
 void as_add_thread(as_t* as, thread_t* thread);
 void as_remove_thread(thread_t* thread);
@@ -69,11 +73,12 @@ static inline bool is_null_pages_access(uintptr_t address) {
 }
 
 static inline bool is_address_beyond_address_space(uintptr_t address, as_t* address_space) {
-    return address >= (NULL_PAGES_REGION_SIZE + address_space->size);
+    return address_space->size != 0
+            && address >= (NULL_PAGES_REGION_SIZE + address_space->size);
 }
 
 static inline bool is_kernel_pages_access(uintptr_t address) {
-    return address >= KERNEL_ADDRESS;
+    return address >= KERNEL_ADDRESS && address < get_memory_end();
 }
 
 static inline bool is_printer_pages_access(uintptr_t address) {

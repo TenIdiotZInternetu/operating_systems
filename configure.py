@@ -52,6 +52,7 @@ CC = $(TOOLCHAIN_DIR)/bin/$(TARGET)-gcc
 LD = $(TOOLCHAIN_DIR)/bin/$(TARGET)-ld
 OBJCOPY = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objcopy
 OBJDUMP = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objdump
+AR = $(TOOLCHAIN_DIR)/bin/$(TARGET)-ar
 
 '''
 
@@ -61,6 +62,8 @@ KERNEL_TEST_SOURCES = {kernel_test_sources}
 KERNEL_EXTRA_CFLAGS = {kernel_extra_cflags}
 KERNEL_EXTRA_ASFLAGS = {kernel_extra_asflags}
 KERNEL_MEMORY_MANAGEMENT_IMPLEMENTATION = {kernel_mm_implementation}
+
+USERSPACE_TEST_SOURCES = {userspace_test_sources}
 
 '''
 
@@ -88,11 +91,6 @@ add rwm mainmem 0x80000000
 mainmem generic {ram_size}K
 mainmem load "kernel/kernel.bin"
 
-# Catch accesses deep after kernel (useful for faulty memory detection)
-add dnomem nomem 0x8FC00000 1M
-nomem rd yes
-nomem mode break
-
 # Setup memory for the loader
 # (RV32IMA starts at hardwired address 0xF0000000).
 add rom loadermem 0xF0000000
@@ -101,6 +99,11 @@ loadermem load "kernel/loader.bin"
 
 # Console printer
 add dprinter printer 0x90000000
+
+# Setup userspace application
+add rom app 0xB8000000
+app generic 128K
+app load "userspace/app.bin"
 
 '''
 
@@ -219,8 +222,21 @@ def main(argv):
         dest='kernel_test',
         help='Kernel test (name).'
     )
+    tests.add_argument('--userspace-test',
+        default=None,
+        dest='userspace_test',
+        help='Userspace test (name).'
+    )
+    tests.add_argument('--mixed-test',
+        default=None,
+        dest='mixed_test',
+        help='Mixed kernel and userspace test (name).'
+    )
 
     config = args.parse_args(argv[1:])
+    if config.mixed_test:
+        config.kernel_test = config.mixed_test
+        config.userspace_test = config.mixed_test
 
     config.logging_level = logging.DEBUG if config.verbose else logging.INFO
     logging.basicConfig(format='[%(asctime)s %(name)-6s %(levelname)7s] %(message)s', level=config.logging_level)
@@ -311,6 +327,17 @@ def main(argv):
     if config.debug:
         kernel_extra_cflags.append('-DKERNEL_DEBUG')
 
+    userspace_test_sources = ''
+
+    if config.userspace_test is not None:
+        userspace_test_sources = 'tests/{}/test.c'.format(config.userspace_test)
+        if not os.path.isfile(os.path.join(src_base, 'userspace', userspace_test_sources)):
+            logger.critical("Userspace test source {} not found.".format(userspace_test_sources))
+            logger.critical("Have you specified both group and test name?")
+            sys.exit(1)
+        kernel_extra_cflags.append('-DUSERSPACE_TEST')
+
+
     if msim_version:
         # For simpler comparisons
         msim_version_str = '{:03d}-{:03d}-{:03d}-{:03d}'.format(*msim_version)
@@ -350,13 +377,14 @@ def main(argv):
             kernel_extra_cflags=' '.join(kernel_extra_cflags),
             kernel_extra_asflags=' '.join(kernel_extra_asflags),
             kernel_mm_implementation=kernel_mm_implementation,
+            userspace_test_sources=userspace_test_sources,
         ))
 
 
     # Create rest of files only when building in different directory
     if is_out_of_tree_build:
         # Create Makefiles
-        for sub in ['.', 'kernel']:
+        for sub in ['.', 'kernel', 'userspace', 'userspace/libc']:
             logger.debug('Creating Makefile inside {}/'.format(sub))
             os.makedirs(sub, exist_ok=True)
             with open(os.path.join(cwd, sub, 'Makefile'), 'w') as f:
