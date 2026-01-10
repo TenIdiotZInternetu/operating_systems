@@ -24,16 +24,11 @@ static char print_buffer[PRINTF_BUFFER_SIZE];
 static size_t current_buffer_pos = 0;
 
 static void _flush(void);
-static void _format_char(char c);
 static void _write_to_buffer(char c);
 static void _format_string(const char* string);
 static void _format_num(uint32_t num, uint8_t base, bool uppercase, uint8_t zero_padding);
 static void _format_hex(uint32_t n, bool uppercase);
 static char _digit_to_char(uint8_t digit, bool uppercase);
-
-static bool _is_before_last_buffer_pos(void) {
-    return (current_buffer_pos < PRINTF_BUFFER_SIZE - 1);
-}
 
 static char _digit_to_char(uint8_t digit, bool uppercase) {
     if (digit < 10) {
@@ -52,11 +47,10 @@ static char _digit_to_char(uint8_t digit, bool uppercase) {
 static void _write_to_buffer(char c) {
     print_buffer[current_buffer_pos] = c;
     ++current_buffer_pos;
-}
 
-static void _format_char(char c) {
-    if (_is_before_last_buffer_pos()) {
-        _write_to_buffer(c);
+    bool is_buffer_full = current_buffer_pos == PRINTF_BUFFER_SIZE - 1;
+    if (is_buffer_full) {
+        _flush();
     }
 }
 
@@ -66,9 +60,8 @@ static void _format_string(const char* string) {
         return;
     }
 
-    for (size_t i = 0; (string[i] != '\0') && _is_before_last_buffer_pos(); ++i) {
-        print_buffer[current_buffer_pos] = string[i];
-        ++current_buffer_pos;
+    for (size_t i = 0; string[i] != '\0'; ++i) {
+        _write_to_buffer(string[i]);
     }
 }
 
@@ -84,10 +77,6 @@ static void _format_num(uint32_t num, uint8_t base, bool uppercase, uint8_t zero
     }
 
     for (; div > 0; div /= base) {
-        if (!_is_before_last_buffer_pos()) {
-            break;
-        }
-
         const uint8_t digit = (num / div) % base;
         const char digitChar = _digit_to_char(digit, uppercase);
         _write_to_buffer(digitChar);
@@ -98,7 +87,7 @@ static void _format_int(int32_t n) {
     uint32_t unsigned_n = n;
 
     if (n < 0) {
-        _format_char('-');
+        _write_to_buffer('-');
         unsigned_n = n * -1;
     }
 
@@ -127,7 +116,7 @@ static void _resolve_specifier(const char** format_it, va_list* args) {
     const char c = *++*format_it;
 
     if (c == SPECIFIER_CHAR) {
-        _format_char((char)va_arg(*args, int));
+        _write_to_buffer((char)va_arg(*args, int));
     } else if (c == SPECIFIER_DECIMAL) {
         _format_int(va_arg(*args, int32_t));
     } else if (c == SPECIFIER_UINT) {
@@ -141,7 +130,7 @@ static void _resolve_specifier(const char** format_it, va_list* args) {
     } else if (c == SPECIFIER_POINTER) {
         _format_pointer(va_arg(*args, void*));
     } else {
-        _format_char(c);
+        _write_to_buffer(c);
     }
 
     ++*format_it;
@@ -189,7 +178,7 @@ int printf(const char* format, ...) {
             continue;
         }
 
-        _format_char(*it);
+        _write_to_buffer(*it);
         it++;
     }
 
