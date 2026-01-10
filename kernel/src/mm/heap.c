@@ -7,6 +7,8 @@
 #include <mm/heap.h>
 #include <mm/self.h>
 
+#define HEAP_ALLOCATOR_IMPLEMENTED
+
 static heap_head_t heap_header;
 
 #define ALIGNED_HEAD_SIZE align(sizeof(block_head_t))
