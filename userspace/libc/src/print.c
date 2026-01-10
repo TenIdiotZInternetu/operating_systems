@@ -20,19 +20,19 @@ const char SPECIFIER_UPPER_HEX = 'X';
 const char SPECIFIER_STRING = 's';
 const char SPECIFIER_POINTER = 'p';
 
-static char printf_char_buffer[PRINTF_BUFFER_SIZE];
-static size_t curr_printf_char_buffer_pos = 0;
+static char print_buffer[PRINTF_BUFFER_SIZE];
+static size_t current_buffer_pos = 0;
 
 static void _flush(void);
 static void _format_char(char c);
-static void _format_char_no_bound_check(char c);
+static void _write_to_buffer(char c);
 static void _format_string(const char* string);
 static void _format_num(uint32_t num, uint8_t base, bool uppercase, uint8_t zero_padding);
 static void _format_hex(uint32_t n, bool uppercase);
 static char _digit_to_char(uint8_t digit, bool uppercase);
 
 static bool _is_before_last_buffer_pos(void) {
-    return (curr_printf_char_buffer_pos < PRINTF_BUFFER_SIZE - 1);
+    return (current_buffer_pos < PRINTF_BUFFER_SIZE - 1);
 }
 
 static char _digit_to_char(uint8_t digit, bool uppercase) {
@@ -49,14 +49,14 @@ static char _digit_to_char(uint8_t digit, bool uppercase) {
     }
 }
 
-static void _format_char_no_bound_check(char c) {
-    printf_char_buffer[curr_printf_char_buffer_pos] = c;
-    ++curr_printf_char_buffer_pos;
+static void _write_to_buffer(char c) {
+    print_buffer[current_buffer_pos] = c;
+    ++current_buffer_pos;
 }
 
 static void _format_char(char c) {
     if (_is_before_last_buffer_pos()) {
-        _format_char_no_bound_check(c);
+        _write_to_buffer(c);
     }
 }
 
@@ -67,8 +67,8 @@ static void _format_string(const char* string) {
     }
 
     for (size_t i = 0; (string[i] != '\0') && _is_before_last_buffer_pos(); ++i) {
-        printf_char_buffer[curr_printf_char_buffer_pos] = string[i];
-        ++curr_printf_char_buffer_pos;
+        print_buffer[current_buffer_pos] = string[i];
+        ++current_buffer_pos;
     }
 }
 
@@ -84,10 +84,13 @@ static void _format_num(uint32_t num, uint8_t base, bool uppercase, uint8_t zero
     }
 
     for (; div > 0; div /= base) {
-        if (!_is_before_last_buffer_pos()) break;
+        if (!_is_before_last_buffer_pos()) {
+            break;
+        }
+
         const uint8_t digit = (num / div) % base;
         const char digitChar = _digit_to_char(digit, uppercase);
-        _format_char_no_bound_check(digitChar);
+        _write_to_buffer(digitChar);
     }
 }
 
@@ -145,10 +148,10 @@ static void _resolve_specifier(const char** format_it, va_list* args) {
 }
 
 static void _flush(void) {
-    if (curr_printf_char_buffer_pos > 0) {
-        write(printf_char_buffer, curr_printf_char_buffer_pos);
+    if (current_buffer_pos > 0) {
+        write(print_buffer, current_buffer_pos);
     }
-    curr_printf_char_buffer_pos = 0;
+    current_buffer_pos = 0;
 }
 
 /** Print single character to console.
@@ -165,7 +168,7 @@ int putchar(int c) {
  * Issues a system call that writes buffer's content to console.
  */
 void write(const void* buffer, size_t count) {
-    __SYSCALL2(SYSCALL_WRITE,(unative_t)buffer, (unative_t)count);
+    __SYSCALL2(SYSCALL_WRITE, (unative_t)buffer, (unative_t)count);
 }
 
 /** Prints the given formatted string to console.
@@ -192,7 +195,7 @@ int printf(const char* format, ...) {
 
     va_end(args);
 
-    int printed_char_count = (int)curr_printf_char_buffer_pos;
+    int printed_char_count = (int)current_buffer_pos;
     _flush();
 
     return printed_char_count;
