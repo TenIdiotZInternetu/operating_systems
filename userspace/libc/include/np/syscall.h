@@ -23,6 +23,7 @@
 typedef enum {
     SYSCALL_PUTCHAR,
     SYSCALL_EXIT,
+    SYSCALL_WRITE,
     SYSCALL_LAST
 } syscall_t;
 
