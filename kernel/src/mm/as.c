@@ -5,12 +5,8 @@
 #include <drivers/printer.h>
 #include <errno.h>
 #include <mm/as.h>
-#include <mm/heap.h>
-<<<<<<< HEAD
 #include <mm/self.h>
-        =======
 #include <proc/scheduler.h>
-        >>>>>>> master
 
 #define PTE_VALID_BIT 0
 #define PTE_READ_BIT 1
@@ -31,13 +27,13 @@
 
 #define LOADER_CODE_ADDRESS 0xF0000000
 
-        // TODO - thread_kill interrupts, deallocation of main table
+// TODO - thread_kill interrupts, deallocation of main table
 
-        /** Initializes support for address spaces.
-         *
-         * Called once at system boot.
-         */
-        void as_init(void) {
+/** Initializes support for address spaces.
+ *
+ * Called once at system boot.
+ */
+void as_init(void) {
 }
 
 /**
@@ -158,6 +154,7 @@ as_t* as_create(size_t size, unsigned int flags) {
     as_t* address_space = (as_t*)kmalloc(sizeof(as_t));
     errno_t err = frame_alloc(1, &address_space->root_table_addr);
     if (err == ENOMEM) {
+        kfree(address_space);
         return NULL;
     }
 
