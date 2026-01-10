@@ -162,7 +162,7 @@ void print_frames() {
     printk("{ FRAME ALLOCATOR\n");
     printk("    used: %u/%u,\n", max_frames - free_frames, max_frames);
     printk("    free: %u,\n", free_frames);
-    printk("    range: %p-%p\n", memory_start, memory_start + get_frame_region_size());
+    printk("    range: %p-%p\n", first_frame_addr, first_frame_addr + get_frame_region_size());
     printk("\n  USED FRAMES:\n");
     print_bitmap(&frame_bits);
     printk("\n}\n");
