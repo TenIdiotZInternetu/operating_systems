@@ -2,6 +2,7 @@
 // Copyright 2019 Charles University
 
 #include <errno.h>
+#include <mm/frame.h>
 #include <mm/heap.h>
 #include <proc/thread.h>
 
@@ -33,7 +34,7 @@ static errno_t _unsafe_process_create(process_t** process_out, uintptr_t image_l
         return EINVAL;
     }
 
-#ifdef FRAME_ALLOCATOR_IMPLEMENTED
+#ifdef MM_IMPLEMENTED
     if (!frame_has_enough_space(process_memory_size)) {
         return ENOMEM;
     }

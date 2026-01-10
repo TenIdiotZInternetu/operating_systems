@@ -10,8 +10,6 @@
 #include <mm/self.h>
 #include <types.h>
 
-#define FRAME_ALLOCATOR_USED
-
 #define FRAME_BITS_SIZE BITMAP_GET_STORAGE_SIZE(FRAME_COUNT_MAX)
 
 static bitmap_t frame_bits;
