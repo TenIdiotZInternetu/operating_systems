@@ -26,6 +26,7 @@ bool frame_has_enough_space(size_t bytes);
 
 void update_free_frame_count(uintptr_t start_address);
 
+uintptr_t get_first_frame_addr(void);
 size_t get_frame_region_size(void);
 
 void print_frames(void);

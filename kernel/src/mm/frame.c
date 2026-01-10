@@ -48,6 +48,10 @@ void update_free_frame_count(uintptr_t start_address) {
             : max_frame_count;
 }
 
+uintptr_t get_first_frame_addr(void) {
+    return first_frame_addr;
+}
+
 size_t get_frame_region_size(void) {
     size_t available_size = (size_t)(get_memory_end() - first_frame_addr);
     return available_size / FRAME_REGION_MEMORY_DIVISOR;

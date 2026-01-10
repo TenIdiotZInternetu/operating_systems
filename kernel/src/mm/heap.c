@@ -82,7 +82,7 @@ static block_head_t* init_free_blocks_list(void) {
  * Called once during system boot.
  */
 void heap_init(void) {
-    uintptr_t heap_start = get_memory_start() + (uintptr_t)(get_frame_region_size());
+    uintptr_t heap_start = get_first_frame_addr() + (uintptr_t)(get_frame_region_size());
 
     update_free_frame_count(heap_start);
 
