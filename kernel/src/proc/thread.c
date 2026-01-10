@@ -76,9 +76,6 @@ static errno_t _thread_create_base_impl(thread_t** thread_out, thread_entry_func
 
     link_init(&p_thread->link);
     _thread_set_name(p_thread, name);
-
-    scheduler_add_ready_thread(p_thread);
-
     *thread_out = p_thread;
     return EOK;
 }
@@ -112,6 +109,8 @@ static errno_t _thread_create_unsafe(thread_t** thread_out, thread_entry_func_t 
     if (p_cur_thread != NULL) {
         as_add_thread(p_cur_thread->address_space, *thread_out);
     }
+
+    scheduler_add_ready_thread(*thread_out);
     return EOK;
 }
 
@@ -153,8 +152,9 @@ static errno_t _thread_create_new_as_unsafe(thread_t** thread_out, thread_entry_
         return ENOMEM;
     }
 
-    // TODO Check for available memory and prevent leaks
     as_add_thread(new_address_space, *thread_out);
+    scheduler_add_ready_thread(*thread_out);
+
     return EOK;
 }
 
@@ -278,6 +278,7 @@ static bool _thread_is_valid(thread_t* thread) {
 
 static errno_t _release_resources_on_join(thread_t* thread, void** retval) {
     safe_list_remove(&thread->link);
+    as_remove_thread(thread);
 
     if (thread->state == KILLED) {
         kfree(thread);
@@ -289,7 +290,6 @@ static errno_t _release_resources_on_join(thread_t* thread, void** retval) {
     }
 
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
-    as_remove_thread(thread);
     kfree(thread);
     return EOK;
 }
@@ -402,7 +402,6 @@ static errno_t _thread_kill_unsafe(thread_t* thread) {
         scheduler_remove_thread(thread);
     }
 
-    as_remove_thread(thread);
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
     thread->state = KILLED;
 
