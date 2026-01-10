@@ -46,6 +46,7 @@ KERNEL_SOURCES = \
 	src/lib/print.c \
 	src/lib/runtime.c \
 	src/mm/as.c \
+	src/mm/self.c \
 	src/proc/context.S \
 	src/proc/mutex.c \
 	src/proc/scheduler.c \
