@@ -270,6 +270,7 @@ void as_destroy(as_t* as) {
         }
     }
 
+    frame_free(1, as->root_table_addr);
     kfree(as);
 }
 
