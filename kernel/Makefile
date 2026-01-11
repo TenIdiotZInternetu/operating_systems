@@ -47,6 +47,7 @@ KERNEL_SOURCES = \
 	src/lib/print.c \
 	src/lib/runtime.c \
 	src/mm/as.c \
+	src/mm/self.c \
 	src/proc/context.S \
 	src/proc/mutex.c \
 	src/proc/process.c \
@@ -56,6 +57,7 @@ KERNEL_SOURCES = \
 	src/proc/userspace.S
 
 ifeq ($(KERNEL_MEMORY_MANAGEMENT_IMPLEMENTATION),)
+KERNEL_EXTRA_CFLAGS += -DMM_IMPLEMENTED
 KERNEL_MM_SOURCES = src/mm/frame.c src/mm/heap.c
 else
 KERNEL_MM_SOURCES = $(KERNEL_MEMORY_MANAGEMENT_IMPLEMENTATION)

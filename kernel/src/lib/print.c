@@ -201,7 +201,9 @@ void resolve_specifier(const char** format_it, va_list* args) {
             print_pointer(va_arg(*args, void*));
             return;
         } else if (next_c == SPECIFIER_FOLLOWUP_HEAP) {
+#ifdef MM_IMPLEMENTED
             print_heap_block(va_arg(*args, void*));
+#endif
         } else if (next_c == SPECIFIER_FOLLOWUP_LIST) {
             print_list(va_arg(*args, list_t*));
         } else if (next_c == SPECIFIER_FOLLOWUP_FUNC) {

@@ -8,9 +8,6 @@
 #include <types.h>
 
 #define FRAME_SIZE 4096
-
-#define PROBE_STEP 4096
-#define PROBE_TEST 0xABABAB
 #define MIN_BLOCK_SIZE 8
 
 #define FRAME_KSEG0_SIZE (512 * 1024 * 1024)
@@ -27,11 +24,9 @@ errno_t frame_alloc(size_t count, uintptr_t* phys);
 errno_t frame_free(size_t count, uintptr_t phys);
 bool frame_has_enough_space(size_t bytes);
 
-uintptr_t get_memory_start(void);
-uintptr_t get_memory_end(void);
-
 void update_free_frame_count(uintptr_t start_address);
 
+uintptr_t get_first_frame_addr(void);
 size_t get_frame_region_size(void);
 
 void print_frames(void);

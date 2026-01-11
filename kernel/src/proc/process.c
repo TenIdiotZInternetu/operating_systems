@@ -2,6 +2,7 @@
 // Copyright 2019 Charles University
 
 #include <errno.h>
+#include <mm/frame.h>
 #include <mm/heap.h>
 #include <proc/thread.h>
 
@@ -33,9 +34,11 @@ static errno_t _unsafe_process_create(process_t** process_out, uintptr_t image_l
         return EINVAL;
     }
 
+#ifdef MM_IMPLEMENTED
     if (!frame_has_enough_space(process_memory_size)) {
         return ENOMEM;
     }
+#endif
 
     thread_t* process_thread;
     errno_t err = thread_create_new_as(&process_thread, NULL, NULL, THREAD_USERSPACE_FLAG, "process_thread", process_memory_size);
