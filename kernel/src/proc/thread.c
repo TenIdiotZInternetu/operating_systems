@@ -278,7 +278,6 @@ static bool _thread_is_valid(thread_t* thread) {
 
 static errno_t _release_resources_on_join(thread_t* thread, void** retval) {
     safe_list_remove(&thread->link);
-    as_remove_thread(thread);
 
     if (thread->state == KILLED) {
         kfree(thread);
@@ -290,6 +289,7 @@ static errno_t _release_resources_on_join(thread_t* thread, void** retval) {
     }
 
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
+    as_remove_thread(thread);
     kfree(thread);
     return EOK;
 }
@@ -403,6 +403,8 @@ static errno_t _thread_kill_unsafe(thread_t* thread) {
     }
 
     frame_free(THREAD_STACK_SIZE_IN_FRAMES, thread->stack_location);
+    as_remove_thread(thread);
+
     thread->state = KILLED;
 
     if (thread == thread_get_current()) {
